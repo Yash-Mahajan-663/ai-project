@@ -1,0 +1,25 @@
+{
+  "name": "11za-saloon-ai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build": "node --check server.js services/*.js controllers/*.js models/*.js",
+    "test:bot": "node test-bot.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.1.1",
+    "mongoose": "^9.3.1",
+    "node-cron": "^4.2.1"
+  }
+}

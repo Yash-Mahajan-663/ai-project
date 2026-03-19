@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://db:27017/11za-saloon
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ELEVENZA_AUTH_TOKEN=${ELEVENZA_AUTH_TOKEN}
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: always
+
+volumes:
+  mongo-data:
