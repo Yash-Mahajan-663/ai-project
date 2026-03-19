@@ -21,17 +21,25 @@ async function receiveWebhook(req, res) {
     let messageBody = '';
     const messageData = payload.messages ? payload.messages[0] : payload;
 
+    // Interactive Buttons (Vercel/Cloud API style)
     if (messageData?.type === 'interactive') {
       const interactive = messageData.interactive;
       if (interactive.type === 'button_reply') {
         messageBody = interactive.button_reply.id || interactive.button_reply.title;
-        console.log(`🔘 BUTTON REPLY: "${messageBody}"`);
       } else if (interactive.type === 'list_reply') {
         messageBody = interactive.list_reply.id || interactive.list_reply.title;
-        console.log(`📋 LIST REPLY: "${messageBody}"`);
       }
-    } else if (messageData?.type === 'text' || messageData?.text) {
-      messageBody = messageData.text?.body || messageData.text || payload.message || '';
+    } 
+    // Text extraction (11za common fallbacks)
+    else {
+      messageBody = 
+        messageData.text?.body || 
+        messageData.text || 
+        payload.UserResponse || 
+        payload.message || 
+        payload.content?.text || 
+        '';
+      
       console.log(`💬 TEXT MESSAGE: "${messageBody}"`);
     }
 
