@@ -8,6 +8,11 @@ const { scheduleAppointmentReminders, scheduleFeedbackRequest } = require('../cr
 // Entry Point — Every incoming message goes here
 // ─────────────────────────────────────────────
 async function handleIncomingMessage(phone, message) {
+  if (!supabase) {
+    console.error('❌ Supabase client is NOT initialized. Check .env');
+    return sendMessage(phone, 'Maafi chahta hoon, thoda technical issue hai. Hum ise jald theek karenge. 🙏');
+  }
+
   // Find or create session using Supabase
   // We join with bookings table for draft_booking_id
   let { data: session, error } = await supabase
