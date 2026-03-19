@@ -1,14 +1,10 @@
 const cron = require('node-cron');
-const Reminder = require('../models/Reminder');
+const supabase = require('../config/supabase');
 const { sendMessage } = require('../services/whatsappService');
 
-// In a real application, you'd parse "Aaj" or "10 AM" rigidly.
-// Here we mock the appointment Datetime to just simulate future timings.
-// For example, treating 'Aaj 10 AM' as a proper JS Date object.
 function parseToDate(dateStr, timeStr) {
-  // Mock logic assuming it's always "today" and the time given
-  // To avoid complexity right now, we set the appointment just 5 minutes later from now.
   const now = new Date();
+  // Simplified logic for simulation: set 5 min from now
   now.setMinutes(now.getMinutes() + 5);
   return now;
 }
@@ -38,28 +34,35 @@ function scheduleFeedbackRequest(phone, dateStr, timeStr) {
 }
 
 async function createReminder(bookingId, phone, message, scheduleTime) {
-  await Reminder.create({
-    bookingId,
-    phone,
-    message,
-    scheduleTime
-  });
+  await supabase
+    .from('reminders')
+    .insert({
+      booking_id: bookingId,
+      phone,
+      message,
+      schedule_time: scheduleTime
+    });
 }
 
-// Polling Cron Job - Runs every 10 seconds
-// Node cron is simple, BullMQ recommended for prod
 function initScheduler() {
+  // Runs every 10 seconds
   cron.schedule('*/10 * * * * *', async () => {
     try {
-      const pendingReminders = await Reminder.find({
-        sent: false,
-        scheduleTime: { $lte: new Date() }
-      });
+      const { data: pendingReminders } = await supabase
+        .from('reminders')
+        .select('*')
+        .eq('sent', false)
+        .lte('schedule_time', new Date().toISOString());
 
-      for (let task of pendingReminders) {
-        await sendMessage(task.phone, task.message);
-        task.sent = true;
-        await task.save();
+      if (pendingReminders && pendingReminders.length > 0) {
+        for (let task of pendingReminders) {
+          await sendMessage(task.phone, task.message);
+          
+          await supabase
+            .from('reminders')
+            .update({ sent: true })
+            .eq('id', task.id);
+        }
       }
     } catch(e) {
       console.error('Error processing reminders:', e.message);

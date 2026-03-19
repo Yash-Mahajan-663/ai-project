@@ -7,7 +7,6 @@
  */
 
 require('dotenv').config();
-const connectDB = require('./config/db');
 const { handleIncomingMessage } = require('./services/botService');
 const { initScheduler } = require('./cron/scheduler');
 
@@ -43,7 +42,6 @@ const conversation = [
 ];
 
 async function runTest() {
-  await connectDB();
   initScheduler();
 
   console.log('=' .repeat(50));

@@ -15,16 +15,8 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp:
 // Main webhook route for 11za WhatsApp API
 app.post('/webhook', receiveWebhook);
 
-// Initialize Database on startup
-connectDB()
-  .then(() => {
-    // Note: node-cron will NOT reliably run in Serverless environments (Vercel)
-    // but we still initialize it in case you run it locally or in a persistent container.
-    initScheduler();
-  })
-  .catch(err => {
-    console.error('❌ FATAL: Database initialization failed:', err.message);
-  });
+// Init background scheduler
+initScheduler();
 
 // Export the app for Vercel serverless deployment
 module.exports = app;
