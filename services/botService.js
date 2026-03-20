@@ -124,11 +124,17 @@ async function handleIncomingMessage(phone, message, senderName) {
     case 'BOOKING_ASK_TIME':
       return handleBookingTimeResponse(session, phone, message, senderName);
 
+    case 'RESCHEDULE_SELECT_BOOKING':
+      return handleSelectRescheduleBooking(session, phone, message);
+
     case 'RESCHEDULE_ASK_DATE':
       return handleRescheduleDateResponse(session, phone, message);
 
     case 'RESCHEDULE_ASK_TIME':
       return handleRescheduleTimeResponse(session, phone, message, senderName);
+
+    case 'CANCEL_SELECT_BOOKING':
+      return handleSelectCancelBooking(session, phone, message);
 
     case 'WAITING_FEEDBACK':
       return handleFeedbackResponse(session, phone, message);
@@ -318,15 +324,40 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
 // Reschedule & Cancel
 // ─────────────────────────────────────────────
 async function handleRescheduleInit(session, phone, aiReply) {
-  const activeBooking = await Booking.findOne({ phone, status: 'booked' }).sort({ created_at: -1 });
+  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ created_at: -1 });
 
-  if (!activeBooking) {
+  if (activeBookings.length === 0) {
     return sendMessage(phone, 'Aapka koi active booking nahi hai reschedule karne ke liye. 🤔');
   }
 
+  if (activeBookings.length > 1) {
+    await updateSession(phone, 'RESCHEDULE_SELECT_BOOKING');
+    let text = "Aapki ek se zyada active bookings hain. Reply karein *NUMBER* likhkar (1 ya 2...) taaki hum use reschedule kar sakein:\n\n";
+    activeBookings.forEach((b, idx) => {
+      text += `*${idx + 1}.* ${b.service} - ${formatDisplayDate(b.date)} @ ${b.time}\n`;
+    });
+    return sendMessage(phone, text);
+  }
+
+  // Only 1 booking
+  const activeBooking = activeBookings[0];
   await Session.updateOne({ phone }, { draft_booking_id: activeBooking._id, stage: 'RESCHEDULE_ASK_DATE' });
 
   return sendMessage(phone, aiReply || 'Naya date kya hoga? (e.g., Kal, 25 March)');
+}
+
+async function handleSelectRescheduleBooking(session, phone, message) {
+  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ created_at: -1 });
+  const index = parseInt(message.trim(), 10) - 1;
+
+  if (isNaN(index) || index < 0 || index >= activeBookings.length) {
+    return sendMessage(phone, "Kripya list mein se sahi Number reply karein (jaise 1 ya 2).");
+  }
+
+  const selectedBooking = activeBookings[index];
+  await Session.updateOne({ phone }, { draft_booking_id: selectedBooking._id, stage: 'RESCHEDULE_ASK_DATE' });
+
+  return sendMessage(phone, `Naya date kya hoga? (e.g., Kal, 25 March)`);
 }
 
 async function handleRescheduleDateResponse(session, phone, message) {
@@ -373,18 +404,47 @@ async function handleRescheduleTimeResponse(session, phone, message, senderName)
 }
 
 async function handleCancelMode(session, phone) {
-  const activeBooking = await Booking.findOne({ phone, status: 'booked' }).sort({ created_at: -1 });
+  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ created_at: -1 });
 
-  if (!activeBooking) {
+  if (activeBookings.length === 0) {
     return sendMessage(phone, 'Aapka koi active booking nahi hai cancel karne ke liye. 🤔');
   }
 
+  // If called directly via 'yes / confirm / no' block and passed a fake session.
+  // Actually, handleCancelMode is sometimes called directly. If so, and they have multiple bookings, we need state.
+  if (activeBookings.length > 1 && session.stage) {
+    await updateSession(phone, 'CANCEL_SELECT_BOOKING');
+    let text = "Aapki multipe active bookings hain. Kis booking ko cancel karna hai? Reply mein *NUMBER* batayein:\n\n";
+    activeBookings.forEach((b, idx) => {
+      text += `*${idx + 1}.* ${b.service} - ${formatDisplayDate(b.date)} @ ${b.time}\n`;
+    });
+    return sendMessage(phone, text);
+  }
+
+  const activeBooking = activeBookings[0];
   await Booking.updateOne({ _id: activeBooking._id }, { status: 'cancelled' });
 
   await updateSession(phone, 'IDLE');
   notifyWaitlistForSlot(activeBooking.date, activeBooking.time);
 
   return sendMessage(phone, `Aapka *${activeBooking.service}* booking cancel ho gaya hai ✅\nKabhi bhi wapas aao! 😊`);
+}
+
+async function handleSelectCancelBooking(session, phone, message) {
+  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ created_at: -1 });
+  const index = parseInt(message.trim(), 10) - 1;
+
+  if (isNaN(index) || index < 0 || index >= activeBookings.length) {
+    return sendMessage(phone, "Kripya list mein se sahi Number reply karein (jaise 1, 2, 3..).");
+  }
+
+  const selectedBooking = activeBookings[index];
+  await Booking.updateOne({ _id: selectedBooking._id }, { status: 'cancelled' });
+
+  await updateSession(phone, 'IDLE');
+  notifyWaitlistForSlot(selectedBooking.date, selectedBooking.time);
+
+  return sendMessage(phone, `Aapka *${selectedBooking.service}* ${formatDisplayDate(selectedBooking.date)} ka booking cancel ho gaya hai ✅\nKabhi bhi wapas aao! 😊`);
 }
 
 // ─────────────────────────────────────────────

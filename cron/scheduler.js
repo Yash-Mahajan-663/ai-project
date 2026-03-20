@@ -32,14 +32,10 @@ function parseToDate(dateStr, timeStr) {
 function scheduleAppointmentReminders(bookingId, phone, dateStr, timeStr, service) {
   const appointmentTime = parseToDate(dateStr, timeStr);
 
-  const dayBefore = new Date(appointmentTime.getTime() - 24 * 60 * 60 * 1000);
-  if (dayBefore > new Date()) {
-    createReminder(bookingId, phone, `Reminder: Aapka ${service} appointment kal ${timeStr} baje hai.`, dayBefore);
-  }
-
-  const secBefore = new Date(appointmentTime.getTime() - 10 * 1000);
-  if (secBefore > new Date()) {
-    createReminder(bookingId, phone, `Aapka appointment 10 seconds mein hai ⏰\nPlease ready rahe 😊`, secBefore);
+  // Exact 2 Hours before appointment
+  const twoHoursBefore = new Date(appointmentTime.getTime() - 2 * 60 * 60 * 1000);
+  if (twoHoursBefore > new Date()) {
+    createReminder(bookingId, phone, `Aapka ${service} appointment 2 ghante mein hai (${timeStr}) ⏰\nHum aapka intezaar kar rahe hain! 😊`, twoHoursBefore);
   }
 }
 
