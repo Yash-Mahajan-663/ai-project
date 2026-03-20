@@ -10,7 +10,16 @@ async function receiveWebhook(req, res) {
     await connectDB();
 
     const payload = req.body;
-    console.log(":::::::::::::::headers:::::::::::::", req.headers)
+    const expectedSecret = process.env.ELEVENZA_WEBHOOK_SECRET;
+
+    if (expectedSecret) {
+      const incomingToken = req.headers['x-api-key'];
+
+      if (incomingToken !== expectedSecret) {
+        console.error('❌ UNAUTHORIZED: Invalid Webhook Request. Headers mismatch.');
+        return res.status(401).send('Unauthorized Request');
+      }
+    }
 
     // ── RAW PAYLOAD LOG — Dekho 11za exactly kya bhej raha hai ──
     console.log('\n' + '═'.repeat(60));
