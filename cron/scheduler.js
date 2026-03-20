@@ -3,10 +3,30 @@ const Reminder = require('../models/Reminder');
 const { sendMessage } = require('../services/whatsappService');
 
 function parseToDate(dateStr, timeStr) {
-  const now = new Date();
-  // Simplified logic for simulation: set 2 min from now
-  now.setMinutes(now.getMinutes() + 2);
-  return now;
+  try {
+    // Expect dateStr = "YYYY-MM-DD", timeStr = "10:00 AM"
+    const [year, month, day] = dateStr.split('-');
+    
+    const timeMatch = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM|am|pm)?/i);
+    let hours = parseInt(timeMatch[1], 10);
+    const mins = parseInt(timeMatch[2] || '0', 10);
+    const modifier = timeMatch[3]?.toUpperCase();
+    
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    
+    // Create UTC date that matches the exact numbers
+    const utcNominalDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), hours, mins, 0));
+    
+    // Subtract 5.5 hours because the nominal numbers were IST, and we want actual absolute timestamp
+    const actualIstDate = new Date(utcNominalDate.getTime() - (5.5 * 60 * 60 * 1000));
+    return actualIstDate;
+  } catch (e) {
+    console.error('Scheduler date parse error:', e.message);
+    const fallback = new Date();
+    fallback.setMinutes(fallback.getMinutes() + 2);
+    return fallback;
+  }
 }
 
 function scheduleAppointmentReminders(bookingId, phone, dateStr, timeStr, service) {

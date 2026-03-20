@@ -84,6 +84,15 @@ function checkPastDateTime(dateStr, timeStr) {
 // Entry Point — Every incoming message goes here
 // ─────────────────────────────────────────────
 async function handleIncomingMessage(phone, message, senderName) {
+  // ── Explicit short-circuit for confirmation buttons ──
+  const lowerMsg = message.toLowerCase().trim();
+  if (lowerMsg === 'yes' || lowerMsg === 'confirm') {
+    return sendMessage(phone, 'Great! Hum aapka intezaar karenge. 🎉');
+  }
+  if (lowerMsg === 'no' || lowerMsg === 'cancel' || lowerMsg === 'cancel booking') {
+    return handleCancelMode({ draft_booking_id: null }, phone); // Call exact cancel logic
+  }
+
   // Find or create session using MongoDB
   let session = await Session.findOne({ phone }).populate('draft_booking_id');
 
