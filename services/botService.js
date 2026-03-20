@@ -276,7 +276,12 @@ async function handleBookingDateResponse(session, phone, message) {
 
 async function handleBookingTimeResponse(session, phone, message, senderName) {
   const ai = await analyzeMessage(`Time bataya: "${message}"`);
-  const timeStr = ai.time || message.trim();
+  const timeStr = ai.time; // DO NOT fallback to raw message
+
+  if (!timeStr) {
+    return sendMessage(phone, ai.reply || `Kripya exact time batayein (jaise 10:00 AM ya 4:30 PM).`);
+  }
+
   const booking = session.draft_booking_id; // already populated
   const dateStr = booking.date;
 
@@ -340,7 +345,11 @@ async function handleRescheduleDateResponse(session, phone, message) {
 
 async function handleRescheduleTimeResponse(session, phone, message) {
   const ai = await analyzeMessage(`New time: "${message}"`);
-  const timeStr = ai.time || message.trim();
+  const timeStr = ai.time;
+
+  if (!timeStr) {
+    return sendMessage(phone, ai.reply || `Kripya exact time batayein (jaise 10:00 AM ya 4:30 PM).`);
+  }
 
   // Get booking details
   const booking = await Booking.findById(session.draft_booking_id);
