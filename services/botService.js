@@ -156,7 +156,7 @@ async function routeByIntent(ai, session, phone, senderName) {
       if (reply && reply.length > 5) { // Ensure there is a greeting text
         await sendMessage(phone, reply);
       }
-      return sendServiceMenuTemplate(phone, senderName);
+      return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
       
     case 'SERVICES':
       // User asked about services or prices. Send AI's explanation first!
@@ -165,7 +165,7 @@ async function routeByIntent(ai, session, phone, senderName) {
         await sendMessage(phone, reply);
       }
       // Follow up with the interactive buttons
-      return sendServiceMenuTemplate(phone, senderName);
+      return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
     case 'BOOKING':
       return startBookingWithAI(session, phone, service, date, time, reply, senderName);
 
@@ -186,7 +186,7 @@ async function routeByIntent(ai, session, phone, senderName) {
     default:
       // If user sends an unrecognized message, show the menu template again
       await updateSession(phone, 'IDLE');
-      return sendServiceMenuTemplate(phone, senderName);
+      return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
   }
 }
 
@@ -221,7 +221,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
   // Skip steps that AI already extracted
   if (!service) {
     await updateSession(phone, 'BOOKING_ASK_SERVICE');
-    return sendServiceMenuTemplate(phone, senderName);
+    return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
   }
 
   if (!date) {

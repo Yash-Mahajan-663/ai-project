@@ -105,8 +105,9 @@ async function sendTemplate(phone, customerName, templateName, options = {}) {
 // 3. Shortcut: Service Menu Template
 //    Template body expects no dynamic variables
 // ─────────────────────────────────────────────
-async function sendServiceMenuTemplate(phone, customerName) {
+async function sendServiceMenuTemplate(phone, customerName, service, type = "chatbot") {
   return sendTemplate(phone, customerName, 'saloon_services_3', {
+    data: [customerName, service, type],
     tags: 'saloon,services'
   });
 }
