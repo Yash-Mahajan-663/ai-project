@@ -217,12 +217,12 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
 
   if (!date) {
     await updateSession(phone, 'BOOKING_ASK_DATE');
-    return sendMessage(phone, `${service} booking ke liye date kya hogi? (e.g., Kal, 25 March)`);
+    return sendMessage(phone, aiReply || `${service} booking ke liye date kya hogi?`);
   }
 
   if (!time) {
     await updateSession(phone, 'BOOKING_ASK_TIME');
-    return sendMessage(phone, `${date} ko kis time par aana chahenge? (e.g., 10 AM, 3 PM)`);
+    return sendMessage(phone, aiReply || `${formatDisplayDate(date)} ko kis time par aana chahenge?`);
   }
 
   // All data available — check slot
