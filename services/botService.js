@@ -32,17 +32,24 @@ function formatDisplayDate(dateStr) {
 }
 
 // ─────────────────────────────────────────────
-// Helper: Check if Date/Time is in the past
+// Helper: Check if Date/Time is in the past (IST Timezone Aware)
 // ─────────────────────────────────────────────
 function checkPastDateTime(dateStr, timeStr) {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // start of today
+    // 1. Get current time in IST (UTC + 5.5 hours)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + istOffset);
     
+    // Create 'today' date at midnight IST
+    const today = new Date(istNow);
+    today.setUTCHours(0, 0, 0, 0); 
+    
+    // Parse user date
     const parsedDate = new Date(dateStr);
-    if (isNaN(parsedDate.getTime())) return false; // Ignore unparseable
+    if (isNaN(parsedDate.getTime())) return false; 
     
-    parsedDate.setHours(0, 0, 0, 0);
+    parsedDate.setUTCHours(0, 0, 0, 0);
     
     // 1. Is the date strictly before today? (e.g., yesterday)
     if (parsedDate < today) return true;
@@ -58,9 +65,11 @@ function checkPastDateTime(dateStr, timeStr) {
         if (modifier === 'PM' && hours < 12) hours += 12;
         if (modifier === 'AM' && hours === 12) hours = 0;
         
-        const now = new Date();
-        // compare hours/mins
-        if (hours < now.getHours() || (hours === now.getHours() && mins <= now.getMinutes())) {
+        const currentHour = istNow.getUTCHours();
+        const currentMin = istNow.getUTCMinutes();
+        
+        // compare hours/mins in IST
+        if (hours < currentHour || (hours === currentHour && mins <= currentMin)) {
           return true;
         }
       }
@@ -86,6 +95,18 @@ async function handleIncomingMessage(phone, message, senderName) {
   const { stage } = session;
   console.log(`🎯 [BOT] Phone: ${phone} | Stage: ${stage} | Msg: "${message}"`);
 
+  // ALWAYS analyze message first to detect if user wants to BREAK OUT of a flow (like saying 'Hello' or 'Cancel')
+  const ai = await analyzeMessage(message);
+  console.log(`🤖 [GROQ] Intent: ${ai.intent} | Service: ${ai.service} | Date: ${ai.date} | Time: ${ai.time}`);
+
+  // Breakout intents: If user sends a greeting, wants services menu, or wants to cancel in the middle of a flow
+  if (stage !== 'IDLE' && stage !== 'WAITING_FEEDBACK') {
+    if (ai.intent === 'GREETING' || ai.intent === 'CANCEL' || ai.intent === 'SERVICES') {
+      console.log(`🚀 Flow broken by user intent: ${ai.intent}`);
+      return routeByIntent(ai, session, phone, senderName);
+    }
+  }
+
   // ── Stage-based flows (no AI needed — structured input expected) ──
   switch (stage) {
     case 'BOOKING_ASK_DATE':
@@ -103,10 +124,6 @@ async function handleIncomingMessage(phone, message, senderName) {
     case 'WAITING_FEEDBACK':
       return handleFeedbackResponse(session, phone, message);
   }
-
-  // ── IDLE or BOOKING_ASK_SERVICE → Groq AI handles it ──
-  const ai = await analyzeMessage(message);
-  console.log(`🤖 [GROQ] Intent: ${ai.intent} | Service: ${ai.service} | Date: ${ai.date} | Time: ${ai.time}`);
 
   // If user is in BOOKING_ASK_SERVICE stage, override intent
   if (stage === 'BOOKING_ASK_SERVICE') {
