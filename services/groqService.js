@@ -14,7 +14,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}
 YOU MUST RETURN EXACTLY THIS JSON STRUCTURE — NO OTHER KEYS ALLOWED:
 {
   "intent": "<one of: GREETING | BOOKING | CANCEL | RESCHEDULE | SERVICES | AVAILABILITY | FEEDBACK | UNKNOWN>",
-  "service": "<one of: Haircut | Beard | Facial | null>",
+  "service": "<ONE OF: Haircut | Beard | Facial | Haircut & Beard | Haircut & Facial | Beard & Facial | Haircut, Beard & Facial | null>",
   "date": "<YYYY-MM-DD format or null>",
   "time": "<e.g. 10:00 AM or null>",
   "reply": "<short friendly Hinglish reply for the user>"
@@ -28,10 +28,10 @@ STRICT RULES:
 5. reply must be short (1-2 sentences), friendly, in Hinglish (Hindi + English mix).
 6. For GREETING intent: reply with a welcome message.
 7. For SERVICES intent: reply asking what service they want.
-8. For dates like "kal" use tomorrow's date. "aaj" = today.
+8. For dates: "aaj" = today, "kal" = tomorrow (today + 1 day), "parso" = day after tomorrow (today + 2 days).
 9. EXACT TIME REQUIRED: If the user gives a vague time like "shaam ko", "subah", "afternoon" without an exact hour, YOU MUST set "time" to null and ask for the exact time in the "reply". ONLY use formats like "10:00 AM" or "4:30 PM" for the "time" field.
 
-AVAILABLE SERVICES: Haircut (₹200), Beard Trim (₹100), Facial (₹500)
+AVAILABLE SERVICES: Haircut (₹200), Beard (₹100), Facial (₹500), Haircut & Beard (₹300)
 `;
 
 // ─────────────────────────────────────────────────────

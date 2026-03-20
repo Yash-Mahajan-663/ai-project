@@ -6,6 +6,10 @@ const PRICES = {
   'Haircut': 200,
   'Beard': 100,
   'Facial': 500,
+  'Haircut & Beard': 300,
+  'Haircut & Facial': 700,
+  'Beard & Facial': 600,
+  'Haircut, Beard & Facial': 800
 };
 
 function getPriceForService(serviceName) {
