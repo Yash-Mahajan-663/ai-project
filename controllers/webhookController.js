@@ -21,6 +21,10 @@ async function receiveWebhook(req, res) {
     // ── Phone Number Extract ──
     const phone = payload.phone || payload.from || (payload.messages && payload.messages[0]?.from);
 
+    // ── Sender Name Extract (from whatsapp.senderName or fallbacks) ──
+    const senderName = payload.whatsapp?.senderName || 'Anonymous';
+    console.log(`👤 SENDER: ${senderName}`);
+
     // ── Message Body Extract ──
     let messageBody = '';
     const messageData = payload.messages ? payload.messages[0] : payload;
@@ -58,9 +62,8 @@ async function receiveWebhook(req, res) {
     console.log('✅ Routing to botService...');
     console.log('═'.repeat(60) + '\n');
 
-    // IMPORTANT for Vercel: We MUST await the processing before finishing the request.
-    // If we send res.status(200) first, Vercel might kill the function before handleIncomingMessage finishes.
-    await handleIncomingMessage(phone, messageBody);
+    // Pass senderName so templates show real user name instead of 'Customer'
+    await handleIncomingMessage(phone, messageBody, senderName);
 
     // Respond to 11za
     res.status(200).send({ status: 'success' });

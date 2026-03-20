@@ -34,7 +34,7 @@ function formatDisplayDate(dateStr) {
 // ─────────────────────────────────────────────
 // Entry Point — Every incoming message goes here
 // ─────────────────────────────────────────────
-async function handleIncomingMessage(phone, message) {
+async function handleIncomingMessage(phone, message, senderName) {
   // Find or create session using MongoDB
   let session = await Session.findOne({ phone }).populate('draft_booking_id');
 
@@ -52,7 +52,7 @@ async function handleIncomingMessage(phone, message) {
       return handleBookingDateResponse(session, phone, message);
 
     case 'BOOKING_ASK_TIME':
-      return handleBookingTimeResponse(session, phone, message);
+      return handleBookingTimeResponse(session, phone, message, senderName);
 
     case 'RESCHEDULE_ASK_DATE':
       return handleRescheduleDateResponse(session, phone, message);
@@ -74,14 +74,15 @@ async function handleIncomingMessage(phone, message) {
   }
 
   // Normal IDLE intent routing
-  return routeByIntent(ai, session, phone);
+  return routeByIntent(ai, session, phone, senderName);
 }
 
 // ─────────────────────────────────────────────
 // Route based on AI-detected intent
 // ─────────────────────────────────────────────
-async function routeByIntent(ai, session, phone) {
+async function routeByIntent(ai, session, phone, senderName) {
   const { intent, service, date, time, reply } = ai;
+  console.log("session, phone, service, date, time, reply", session, phone, service, date, time, reply)
 
   switch (intent) {
     case 'GREETING':
@@ -89,10 +90,9 @@ async function routeByIntent(ai, session, phone) {
       // On greeting or service inquiry → send the interactive template with buttons
       // User will click a button → THAT triggers the AI booking flow
       await updateSession(phone, 'IDLE');
-      return sendServiceMenuTemplate(phone, 'Customer');
-
+      return sendServiceMenuTemplate(phone, senderName);
     case 'BOOKING':
-      return startBookingWithAI(session, phone, service, date, time, reply);
+      return startBookingWithAI(session, phone, service, date, time, reply, senderName);
 
     case 'AVAILABILITY':
       await updateSession(phone, 'IDLE');
@@ -111,7 +111,7 @@ async function routeByIntent(ai, session, phone) {
     default:
       // If user sends an unrecognized message, show the menu template again
       await updateSession(phone, 'IDLE');
-      return sendServiceMenuTemplate(phone, 'Customer');
+      return sendServiceMenuTemplate(phone, senderName);
   }
 }
 
@@ -119,7 +119,7 @@ async function routeByIntent(ai, session, phone) {
 // ─────────────────────────────────────────────
 // Booking: AI ne jo extract kiya usse use karo
 // ─────────────────────────────────────────────
-async function startBookingWithAI(session, phone, service, date, time, aiReply) {
+async function startBookingWithAI(session, phone, service, date, time, aiReply, senderName) {
   const price = getPriceForService(service);
 
   // Create draft booking in MongoDB
@@ -139,7 +139,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply) 
   // Skip steps that AI already extracted
   if (!service) {
     await updateSession(phone, 'BOOKING_ASK_SERVICE');
-    return sendServiceMenuTemplate(phone, 'Customer');
+    return sendServiceMenuTemplate(phone, senderName);
   }
 
   if (!date) {
@@ -153,7 +153,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply) 
   }
 
   // All data available — check slot
-  return confirmBooking(phone, draftBooking._id, service, date, time);
+  return confirmBooking(phone, draftBooking._id, service, date, time, senderName);
 }
 
 // ─────────────────────────────────────────────
@@ -188,15 +188,15 @@ async function handleBookingDateResponse(session, phone, message) {
   return sendMessage(phone, `📅 *${dateStr}* — Theek hai!\nKis time par aana chahenge? (e.g., 10 AM, 3 PM)`);
 }
 
-async function handleBookingTimeResponse(session, phone, message) {
+async function handleBookingTimeResponse(session, phone, message, senderName) {
   const ai = await analyzeMessage(`Time bataya: "${message}"`);
   const timeStr = ai.time || message.trim();
   const booking = session.draft_booking_id; // already populated
 
-  return confirmBooking(phone, session.draft_booking_id._id, booking?.service, booking?.date, timeStr);
+  return confirmBooking(phone, session.draft_booking_id._id, booking?.service, booking?.date, timeStr, senderName);
 }
 
-async function confirmBooking(phone, bookingId, service, date, time) {
+async function confirmBooking(phone, bookingId, service, date, time, senderName) {
   const isAvailable = await checkSlotAvailability(date, time);
 
   const displayDate = formatDisplayDate(date); // e.g. "22nd March 2026"
@@ -215,7 +215,7 @@ async function confirmBooking(phone, bookingId, service, date, time) {
   scheduleFeedbackRequest(phone, date, time);
 
   // Send booking confirmation template with human-readable date
-  return sendBookingConfirmTemplate(phone, 'Customer', service, displayDate, time);
+  return sendBookingConfirmTemplate(phone, senderName, service, displayDate, time);
 }
 
 // ─────────────────────────────────────────────
