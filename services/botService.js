@@ -40,20 +40,20 @@ function checkPastDateTime(dateStr, timeStr) {
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istNow = new Date(now.getTime() + istOffset);
-    
+
     // Create 'today' date at midnight IST
     const today = new Date(istNow);
-    today.setUTCHours(0, 0, 0, 0); 
-    
+    today.setUTCHours(0, 0, 0, 0);
+
     // Parse user date
     const parsedDate = new Date(dateStr);
-    if (isNaN(parsedDate.getTime())) return false; 
-    
+    if (isNaN(parsedDate.getTime())) return false;
+
     parsedDate.setUTCHours(0, 0, 0, 0);
-    
+
     // 1. Is the date strictly before today? (e.g., yesterday)
     if (parsedDate < today) return true;
-    
+
     // 2. Is the date today, and time is provided, and time is in the past?
     if (parsedDate.getTime() === today.getTime() && timeStr) {
       const timeMatch = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM|am|pm)?/i);
@@ -61,13 +61,13 @@ function checkPastDateTime(dateStr, timeStr) {
         let hours = parseInt(timeMatch[1], 10);
         const mins = parseInt(timeMatch[2] || '0', 10);
         const modifier = timeMatch[3]?.toUpperCase();
-        
+
         if (modifier === 'PM' && hours < 12) hours += 12;
         if (modifier === 'AM' && hours === 12) hours = 0;
-        
+
         const currentHour = istNow.getUTCHours();
         const currentMin = istNow.getUTCMinutes();
-        
+
         // compare hours/mins in IST
         if (hours < currentHour || (hours === currentHour && mins <= currentMin)) {
           return true;
@@ -163,7 +163,7 @@ async function routeByIntent(ai, session, phone, senderName) {
         await sendMessage(phone, reply);
       }
       return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
-      
+
     case 'SERVICES':
       // User asked about services or prices. Send AI's explanation first!
       await updateSession(phone, 'IDLE');
@@ -284,7 +284,7 @@ async function handleBookingDateResponse(session, phone, message, senderName) {
       await updateSession(phone, 'BOOKING_ASK_TIME');
       return sendMessage(phone, `📅 *${formatDisplayDate(dateStr)}* — Lekin woh time (${ai.time}) nikal chuka hai. Kripya future ka time chunein.`);
     }
-    const booking = session.draft_booking_id; 
+    const booking = session.draft_booking_id;
     return confirmBooking(phone, booking._id, booking.service, dateStr, ai.time, senderName);
   }
 
@@ -492,7 +492,7 @@ async function handleCheckMyBookings(phone) {
 
   let text = `Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
   activeBookings.forEach((b, idx) => {
-    text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time} [${b.status.toUpperCase()}]\n`;
+    text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time} *[${b.status.toUpperCase()}]*\n`;
   });
   text += "\nAgar reschedule ya cancel karna ho, toh directly bol sakte hain!";
   return sendMessage(phone, text);
