@@ -2,7 +2,8 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const baseUrl = (process.env.ELEVENZA_API_BASE_URL || 'https://api.11za.in/apis').replace(/\/$/, '');
+// Correct base URL: https://internal.11za.in/apis (confirmed from 11za API Integration Config panel)
+const baseUrl = (process.env.ELEVENZA_API_BASE_URL || 'https://internal.11za.in/apis').replace(/\/$/, '');
 const token = process.env.ELEVENZA_AUTH_TOKEN;
 const originWebsite = process.env.ELEVENZA_ORIGIN_WEBSITE || 'www.11za.com';
 
@@ -46,11 +47,12 @@ async function sendMessage(phone, message) {
       authToken: token,
       sendto: phone,
       originWebsite,
-      message: message // 11za usually uses 'message' or 'text' depending on the endpoint
+      message: message
     };
+    // Plain text message endpoint on internal.11za.in
     return await callApi('sendMessage/sendMessages', payload);
   } catch (err) {
-    console.error(`[sendMessage] Error to ${phone}:`, err.message);
+    console.error(`[sendMessage] Error to ${phone}:`, err.response?.data || err.message);
   }
 }
 
@@ -91,9 +93,10 @@ async function sendTemplate(phone, customerName, templateName, options = {}) {
   }
 
   try {
-    return await callApi('sendTemplate', payload);
+    // Correct 11za endpoint for template messages
+    return await callApi('template/sendTemplate', payload);
   } catch (err) {
-    console.error(`[sendTemplate] Error sending "${templateName}" to ${phone}:`, err.message);
+    console.error(`[sendTemplate] Error sending "${templateName}" to ${phone}:`, err.response?.data || err.message);
   }
 }
 
