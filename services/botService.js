@@ -152,10 +152,19 @@ async function routeByIntent(ai, session, phone, senderName) {
 
   switch (intent) {
     case 'GREETING':
-    case 'SERVICES':
-      // On greeting or service inquiry → send the interactive template with buttons
-      // User will click a button → THAT triggers the AI booking flow
       await updateSession(phone, 'IDLE');
+      if (reply && reply.length > 5) { // Ensure there is a greeting text
+        await sendMessage(phone, reply);
+      }
+      return sendServiceMenuTemplate(phone, senderName);
+      
+    case 'SERVICES':
+      // User asked about services or prices. Send AI's explanation first!
+      await updateSession(phone, 'IDLE');
+      if (reply) {
+        await sendMessage(phone, reply);
+      }
+      // Follow up with the interactive buttons
       return sendServiceMenuTemplate(phone, senderName);
     case 'BOOKING':
       return startBookingWithAI(session, phone, service, date, time, reply, senderName);
