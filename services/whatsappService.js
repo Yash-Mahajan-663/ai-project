@@ -2,8 +2,8 @@ const axios = require('axios');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Correct base URL: https://internal.11za.in/apis (confirmed from 11za API Integration Config panel)
-const baseUrl = (process.env.ELEVENZA_API_BASE_URL || 'https://internal.11za.in/apis').replace(/\/$/, '');
+// Correct base URL confirmed from 11za Postman docs: https://api.11za.in/apis
+const baseUrl = (process.env.ELEVENZA_API_BASE_URL || 'https://api.11za.in/apis').replace(/\/$/, '');
 const token = process.env.ELEVENZA_AUTH_TOKEN;
 const originWebsite = process.env.ELEVENZA_ORIGIN_WEBSITE || 'www.11za.com';
 
@@ -47,9 +47,10 @@ async function sendMessage(phone, message) {
       authToken: token,
       sendto: phone,
       originWebsite,
-      message: message
+      contentType: 'text',   // Required by 11za API
+      text: message          // 11za uses 'text', not 'message'
     };
-    // Plain text message endpoint on internal.11za.in
+    console.log(`[sendMessage] Payload:`, JSON.stringify(payload));
     return await callApi('sendMessage/sendMessages', payload);
   } catch (err) {
     console.error(`[sendMessage] Error to ${phone}:`, err.response?.data || err.message);
