@@ -17,7 +17,7 @@ async function receiveWebhook(req, res) {
 
       if (incomingToken !== expectedSecret) {
         console.error('❌ UNAUTHORIZED: Invalid Webhook Request. Headers mismatch.');
-        return res.status(401).send('Unauthorized Request');
+        return res.status(200).send('Unauthorized but acknowledged'); // Returning 200 to prevent retries
       }
     }
 
