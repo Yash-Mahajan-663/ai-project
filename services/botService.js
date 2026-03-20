@@ -484,7 +484,7 @@ async function handleSelectCancelBooking(session, phone, message) {
 }
 
 async function handleCheckMyBookings(phone) {
-  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ date: 1 });
+  const activeBookings = await Booking.find({ phone }).sort({ date: 1 });
 
   if (activeBookings.length === 0) {
     return sendMessage(phone, `Aapki is *${phone}* par koi aane wali active booking nahi hai. ❌`);
