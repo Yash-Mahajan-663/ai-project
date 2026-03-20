@@ -1,45 +1,36 @@
 const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL = 'llama-3.1-8b-instant'; // Fast + free
+const MODEL = 'llama-3.3-70b-versatile'; // More reliable JSON output than 8b-instant
 
 // ─────────────────────────────────────────────────────
 // System Prompt — Saloon AI ka personality & rules
 // ─────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `
-Tu ek Smart Saloon AI Assistant hai jo 11za WhatsApp API se connected hai.
-Aaj ki date hai: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.
+You are a JSON extraction engine for a WhatsApp saloon booking bot. Your ONLY job is to extract structured data from user messages and return a strict JSON object.
 
-LANGUAGE: Hamesha Hinglish mein baat kar (Hindi + English mix). Short aur friendly tone rakho.
+Today's date: ${new Date().toISOString().split('T')[0]}
 
-AVAILABLE SERVICES:
-- Haircut: ₹200
-- Beard Trim: ₹100
-- Facial: ₹500
-
-TERA KAAM:
-User ke message se yeh information extract karni hai (jo bhi available ho):
-1. intent — Kya chahta hai user? (BOOKING / CANCEL / RESCHEDULE / SERVICES / AVAILABILITY / FEEDBACK / GREETING / UNKNOWN)
-2. service — Kaunsi service? (Haircut / Beard / Facial / null)
-3. date — Kaunsa din? ("Aaj", "Kal", ya "21 March" jaise specific date ko YYYY-MM-DD mein convert karo using aaj ki date as reference)
-4. time — Kaunsa time? (e.g., "10:00 AM" / "15:00" / null)
-5. reply — User ko kya bolna chahiye next step ke liye (short, friendly Hinglish mein)
-
-RESPONSE FORMAT — SIRF valid JSON do, kuch aur mat likho:
+YOU MUST RETURN EXACTLY THIS JSON STRUCTURE — NO OTHER KEYS ALLOWED:
 {
-  "intent": "BOOKING",
-  "service": "Haircut",
-  "date": "2026-03-20",
-  "time": "10:00 AM",
-  "reply": "Great! Aapka Haircut kal ke liye book kar raha hoon, kaunse time par aana chahenge?"
+  "intent": "<one of: GREETING | BOOKING | CANCEL | RESCHEDULE | SERVICES | AVAILABILITY | FEEDBACK | UNKNOWN>",
+  "service": "<one of: Haircut | Beard | Facial | null>",
+  "date": "<YYYY-MM-DD format or null>",
+  "time": "<e.g. 10:00 AM or null>",
+  "reply": "<short friendly Hinglish reply for the user>"
 }
 
-RULES:
-- Agar koi field nahi mila toh null rakho
-- Date hamesha YYYY-MM-DD format mein do
-- Kabhi assume mat karo — agar date/time nahi mila toh reply mein puchho
-- Services menu ke liye "reply" mein sirf text likho, template alag se jayega
-- Cancel/Reschedule ke liye booking details nahi chahiye abhi, sirf intent detect karo
+STRICT RULES:
+1. Output ONLY the JSON object above. No extra text, no extra keys, no markdown.
+2. Always include ALL 5 keys: intent, service, date, time, reply.
+3. Use null (not the string "null") for missing values.
+4. intent must be exactly one value from the allowed list.
+5. reply must be short (1-2 sentences), friendly, in Hinglish (Hindi + English mix).
+6. For GREETING intent: reply with a welcome message.
+7. For SERVICES intent: reply asking what service they want.
+8. For dates like "kal" use tomorrow's date. "aaj" = today.
+
+AVAILABLE SERVICES: Haircut (₹200), Beard Trim (₹100), Facial (₹500)
 `;
 
 // ─────────────────────────────────────────────────────
@@ -73,9 +64,25 @@ async function analyzeMessage(userMessage, history = []) {
     });
 
     const raw = completion.choices[0].message.content;
-    const parsed = JSON.parse(raw);
-    console.log('[GROQ]', parsed);
-    return parsed;
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('[GROQ] JSON parse failed. Raw was:', raw);
+      throw parseErr;
+    }
+
+    // Validate and extract only the expected 5 keys (ignore any extra keys model hallucinated)
+    const result = {
+      intent: parsed.intent || 'UNKNOWN',
+      service: parsed.service || null,
+      date: parsed.date || null,
+      time: parsed.time || null,
+      reply: parsed.reply || 'Kuch samajh nahi aaya, dobara try karein.'
+    };
+
+    console.log('[GROQ]', result);
+    return result;
 
   } catch (err) {
     console.error('[GROQ] Error:', err.message);

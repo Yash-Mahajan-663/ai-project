@@ -61,14 +61,14 @@ async function routeByIntent(ai, session, phone) {
 
   switch (intent) {
     case 'GREETING':
-      return sendMessage(phone, reply || 'Hello 👋 Kaise help kar sakta hu aapki?');
+    case 'SERVICES':
+      // On greeting or service inquiry → send the interactive template with buttons
+      // User will click a button → THAT triggers the AI booking flow
+      await updateSession(phone, 'IDLE');
+      return sendServiceMenuTemplate(phone, 'Customer');
 
     case 'BOOKING':
       return startBookingWithAI(session, phone, service, date, time, reply);
-
-    case 'SERVICES':
-      await updateSession(phone, 'IDLE');
-      return sendServiceMenuTemplate(phone, 'Customer');
 
     case 'AVAILABILITY':
       await updateSession(phone, 'IDLE');
@@ -85,9 +85,12 @@ async function routeByIntent(ai, session, phone) {
       return sendMessage(phone, reply || 'Aap apna feedback share kar sakte hain. ⭐ (1-5)');
 
     default:
-      return sendMessage(phone, reply || 'Samajh nahi paaya. "Book appointment" ya "Services" type karein.');
+      // If user sends an unrecognized message, show the menu template again
+      await updateSession(phone, 'IDLE');
+      return sendServiceMenuTemplate(phone, 'Customer');
   }
 }
+
 
 // ─────────────────────────────────────────────
 // Booking: AI ne jo extract kiya usse use karo
