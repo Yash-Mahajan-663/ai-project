@@ -6,6 +6,30 @@ const { analyzeMessage } = require('./groqService');
 const { sendMessage, sendServiceMenuTemplate, sendBookingConfirmTemplate } = require('./whatsappService');
 const { getPriceForService } = require('./pricingService');
 const { scheduleAppointmentReminders, scheduleFeedbackRequest } = require('../cron/scheduler');
+const { format, parseISO, isValid } = require('date-fns');
+
+// ─────────────────────────────────────────────
+// Helper: "2026-03-22" → "22nd March 2026"
+// ─────────────────────────────────────────────
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return dateStr;
+  // If already human-readable (not YYYY-MM-DD), return as-is
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  try {
+    const date = parseISO(dateStr);
+    if (!isValid(date)) return dateStr;
+    const day = parseInt(format(date, 'd'));
+    const month = format(date, 'MMMM');
+    const year = format(date, 'yyyy');
+    // Ordinal suffix (1st, 2nd, 3rd, 4th...)
+    const suffix = (['th', 'st', 'nd', 'rd']);
+    const v = day % 100;
+    const ordinal = suffix[(v - 20) % 10] || suffix[v] || suffix[0];
+    return `${day}${ordinal} ${month} ${year}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 // ─────────────────────────────────────────────
 // Entry Point — Every incoming message goes here
@@ -175,21 +199,23 @@ async function handleBookingTimeResponse(session, phone, message) {
 async function confirmBooking(phone, bookingId, service, date, time) {
   const isAvailable = await checkSlotAvailability(date, time);
 
+  const displayDate = formatDisplayDate(date); // e.g. "22nd March 2026"
+
   if (!isAvailable) {
     await processWaitlist(phone, date, time);
-    return sendMessage(phone, `⚠️ Ye slot already booked hai 😅\nAapko waitlist mein add kar diya hai.\nKoi aur time batao ya hum slot free hone par notify kar denge!`);
+    return sendMessage(phone, `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai 😅\nAapko waitlist mein add kar diya hai. Koi aur time batao ya slot free hone par hum notify karenge!`);
   }
 
-  // Update booking status
+  // Update booking status in MongoDB
   await Booking.updateOne({ _id: bookingId }, { status: 'booked', time });
-
   await updateSession(phone, 'IDLE');
 
   // Schedule reminders
   scheduleAppointmentReminders(bookingId, phone, date, time, service);
   scheduleFeedbackRequest(phone, date, time);
 
-  return sendBookingConfirmTemplate(phone, 'Customer', service, date, time);
+  // Send booking confirmation template with human-readable date
+  return sendBookingConfirmTemplate(phone, 'Customer', service, displayDate, time);
 }
 
 // ─────────────────────────────────────────────
