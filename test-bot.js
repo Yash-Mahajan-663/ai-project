@@ -9,13 +9,14 @@
 require('dotenv').config();
 const { handleIncomingMessage } = require('./services/botService');
 const { initScheduler } = require('./cron/scheduler');
+const connectDB = require('./config/db');
 
 // Monkey-patch whatsappService to log instead of calling API
 const whatsapp = require('./services/whatsappService');
-const originalSend = whatsapp.sendMessage;
-const originalTemplate = whatsapp.sendServiceMenuTemplate;
-const originalConfirm = whatsapp.sendBookingConfirmTemplate;
-const originalReminder = whatsapp.sendReminderTemplate;
+// const originalSend = whatsapp.sendMessage;
+// const originalTemplate = whatsapp.sendServiceMenuTemplate;
+// const originalConfirm = whatsapp.sendBookingConfirmTemplate;
+// const originalReminder = whatsapp.sendReminderTemplate;
 
 whatsapp.sendMessage = async (phone, msg) => {
   console.log(`\n📤 BOT → ${phone}\n   "${msg}"\n`);
@@ -42,11 +43,12 @@ const conversation = [
 ];
 
 async function runTest() {
+  await connectDB();
   initScheduler();
 
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
   console.log('🧪 Bot Test Starting...');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   for (const msg of conversation) {
     console.log(`\n👤 USER → "${msg}"`);
