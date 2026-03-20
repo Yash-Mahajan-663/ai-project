@@ -8,8 +8,9 @@ async function receiveWebhook(req, res) {
   try {
     // Ensure database is connected before processing
     await connectDB();
-    
+
     const payload = req.body;
+    console.log(":::::::::::::::headers:::::::::::::", req.headers)
 
     // ── RAW PAYLOAD LOG — Dekho 11za exactly kya bhej raha hai ──
     console.log('\n' + '═'.repeat(60));
@@ -37,17 +38,17 @@ async function receiveWebhook(req, res) {
       } else if (interactive.type === 'list_reply') {
         messageBody = interactive.list_reply.id || interactive.list_reply.title;
       }
-    } 
+    }
     // Text extraction (11za common fallbacks)
     else {
-      messageBody = 
-        messageData.text?.body || 
-        messageData.text || 
-        payload.UserResponse || 
-        payload.message || 
-        payload.content?.text || 
+      messageBody =
+        messageData.text?.body ||
+        messageData.text ||
+        payload.UserResponse ||
+        payload.message ||
+        payload.content?.text ||
         '';
-      
+
       console.log(`💬 TEXT MESSAGE: "${messageBody}"`);
     }
 
