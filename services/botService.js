@@ -487,10 +487,10 @@ async function handleCheckMyBookings(phone) {
   const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ date: 1 });
 
   if (activeBookings.length === 0) {
-    return sendMessage(phone, "Aapki is number par koi aane wali active booking nahi hai. ❌");
+    return sendMessage(phone, `Aapki is *${phone}* par koi aane wali active booking nahi hai. ❌`);
   }
 
-  let text = `Aapki is number se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
+  let text = `Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
   activeBookings.forEach((b, idx) => {
     text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time}\n`;
   });
