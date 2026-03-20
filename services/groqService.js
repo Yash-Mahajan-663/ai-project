@@ -29,6 +29,7 @@ STRICT RULES:
 6. For GREETING intent: reply with a welcome message.
 7. For SERVICES intent: reply asking what service they want.
 8. For dates like "kal" use tomorrow's date. "aaj" = today.
+9. EXACT TIME REQUIRED: If the user gives a vague time like "shaam ko", "subah", "afternoon" without an exact hour, YOU MUST set "time" to null and ask for the exact time in the "reply". ONLY use formats like "10:00 AM" or "4:30 PM" for the "time" field.
 
 AVAILABLE SERVICES: Haircut (₹200), Beard Trim (₹100), Facial (₹500)
 `;
