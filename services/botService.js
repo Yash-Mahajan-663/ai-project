@@ -32,6 +32,46 @@ function formatDisplayDate(dateStr) {
 }
 
 // ─────────────────────────────────────────────
+// Helper: Check if Date/Time is in the past
+// ─────────────────────────────────────────────
+function checkPastDateTime(dateStr, timeStr) {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // start of today
+    
+    const parsedDate = new Date(dateStr);
+    if (isNaN(parsedDate.getTime())) return false; // Ignore unparseable
+    
+    parsedDate.setHours(0, 0, 0, 0);
+    
+    // 1. Is the date strictly before today? (e.g., yesterday)
+    if (parsedDate < today) return true;
+    
+    // 2. Is the date today, and time is provided, and time is in the past?
+    if (parsedDate.getTime() === today.getTime() && timeStr) {
+      const timeMatch = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM|am|pm)?/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1], 10);
+        const mins = parseInt(timeMatch[2] || '0', 10);
+        const modifier = timeMatch[3]?.toUpperCase();
+        
+        if (modifier === 'PM' && hours < 12) hours += 12;
+        if (modifier === 'AM' && hours === 12) hours = 0;
+        
+        const now = new Date();
+        // compare hours/mins
+        if (hours < now.getHours() || (hours === now.getHours() && mins <= now.getMinutes())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────
 // Entry Point — Every incoming message goes here
 // ─────────────────────────────────────────────
 async function handleIncomingMessage(phone, message, senderName) {
@@ -120,6 +160,13 @@ async function routeByIntent(ai, session, phone, senderName) {
 // Booking: AI ne jo extract kiya usse use karo
 // ─────────────────────────────────────────────
 async function startBookingWithAI(session, phone, service, date, time, aiReply, senderName) {
+  // If AI detected date/time in the past, reject it so the bot asks again
+  if (date && checkPastDateTime(date, time)) {
+    sendMessage(phone, `⚠️ Aapne jo date ya time chuna tha (${formatDisplayDate(date)} ${time || ''}), woh beet chuka hai. Hum fresh date/time collect karenge...`);
+    date = null;
+    time = null;
+  }
+
   const price = getPriceForService(service);
 
   // Create draft booking in MongoDB
@@ -182,6 +229,10 @@ async function handleBookingDateResponse(session, phone, message) {
   const ai = await analyzeMessage(`Booking ke liye date batai: "${message}"`);
   const dateStr = ai.date || message.trim();
 
+  if (checkPastDateTime(dateStr, null)) {
+    return sendMessage(phone, `⚠️ "${formatDisplayDate(dateStr)}" pehle hi beet chuka hai. Kripya aaj ya uske aage ki koi date chunein.`);
+  }
+
   await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
 
   await updateSession(phone, 'BOOKING_ASK_TIME');
@@ -192,6 +243,11 @@ async function handleBookingTimeResponse(session, phone, message, senderName) {
   const ai = await analyzeMessage(`Time bataya: "${message}"`);
   const timeStr = ai.time || message.trim();
   const booking = session.draft_booking_id; // already populated
+  const dateStr = booking.date;
+
+  if (checkPastDateTime(dateStr, timeStr)) {
+    return sendMessage(phone, `⚠️ Woh time (${timeStr}) aaj nikal chuka hai. Kripya future ka koi time chunein.`);
+  }
 
   return confirmBooking(phone, session.draft_booking_id._id, booking?.service, booking?.date, timeStr, senderName);
 }
@@ -237,6 +293,10 @@ async function handleRescheduleDateResponse(session, phone, message) {
   const ai = await analyzeMessage(`Reschedule ke liye naya date: "${message}"`);
   const dateStr = ai.date || message.trim();
 
+  if (checkPastDateTime(dateStr, null)) {
+    return sendMessage(phone, `⚠️ "${formatDisplayDate(dateStr)}" pehle hi beet chuka hai. Kripya aaj ya uske aage ki koi date chunein.`);
+  }
+
   await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
 
   await updateSession(phone, 'RESCHEDULE_ASK_TIME');
@@ -249,6 +309,10 @@ async function handleRescheduleTimeResponse(session, phone, message) {
 
   // Get booking details
   const booking = await Booking.findById(session.draft_booking_id);
+
+  if (checkPastDateTime(booking.date, timeStr)) {
+    return sendMessage(phone, `⚠️ Woh time (${timeStr}) aaj nikal chuka hai. Kripya future ka koi time chunein.`);
+  }
 
   const isAvailable = await checkSlotAvailability(booking.date, timeStr);
   if (!isAvailable) {
