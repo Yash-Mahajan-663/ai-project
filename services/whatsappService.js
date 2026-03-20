@@ -114,22 +114,21 @@ async function sendServiceMenuTemplate(phone, customerName, service, type = "cha
 
 // ─────────────────────────────────────────────
 // 4. Shortcut: Booking Confirmation Template
-//    Template body e.g.: "Aapka {{1}} appointment {{2}} ko {{3}} baje confirm ho gaya ✅"
 // ─────────────────────────────────────────────
 async function sendBookingConfirmTemplate(phone, customerName, service, date, time) {
   return sendTemplate(phone, customerName, 'saloon_booking_confirm', {
-    data: [service, date, time],
+    // Adding customerName so that 11za variable {{1}} maps to Name, {{2}} to Service, {{3}} to Date, {{4}} to Time
+    data: [customerName, service, date, time],
     tags: 'saloon,booking'
   });
 }
 
 // ─────────────────────────────────────────────
 // 5. Shortcut: Reschedule Confirmation Template
-//    Template body e.g.: "Aapka {{1}} reschedule ho gaya hai. Nayi date: {{2}}, Naya time: {{3}} ✅"
 // ─────────────────────────────────────────────
 async function sendRescheduleConfirmTemplate(phone, customerName, service, date, time) {
   return sendTemplate(phone, customerName, 'saloon_reschedule_confirm', {
-    data: [service, date, time],
+    data: [customerName, service, date, time],
     tags: 'saloon,reschedule'
   });
 }

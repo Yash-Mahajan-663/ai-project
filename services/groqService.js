@@ -13,7 +13,7 @@ Today's date: ${new Date().toISOString().split('T')[0]}
 
 YOU MUST RETURN EXACTLY THIS JSON STRUCTURE — NO OTHER KEYS ALLOWED:
 {
-  "intent": "<one of: GREETING | BOOKING | CANCEL | RESCHEDULE | SERVICES | AVAILABILITY | FEEDBACK | UNKNOWN>",
+  "intent": "<one of: GREETING | BOOKING | CANCEL | RESCHEDULE | SERVICES | AVAILABILITY | MY_BOOKINGS | FEEDBACK | UNKNOWN>",
   "service": "<ONE OF: Haircut | Beard | Facial | Haircut & Beard | Haircut & Facial | Beard & Facial | Haircut, Beard & Facial | null>",
   "date": "<YYYY-MM-DD format or null>",
   "time": "<e.g. 10:00 AM or null>",

@@ -185,6 +185,9 @@ async function routeByIntent(ai, session, phone, senderName) {
     case 'CANCEL':
       return handleCancelMode(session, phone);
 
+    case 'MY_BOOKINGS':
+      return handleCheckMyBookings(phone);
+
     case 'FEEDBACK':
       await updateSession(phone, 'WAITING_FEEDBACK');
       return sendMessage(phone, reply || 'Aap apna feedback share kar sakte hain. ⭐ (1-5)');
@@ -319,8 +322,8 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
     return sendMessage(phone, `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai 😅\nAapko waitlist mein add kar diya hai. Koi aur time batao ya slot free hone par hum notify karenge!`);
   }
 
-  // Update booking status in MongoDB
-  await Booking.updateOne({ _id: bookingId }, { status: 'booked', time });
+  // Update booking status in MongoDB. Also save date in case it was a bulk-response skip
+  await Booking.updateOne({ _id: bookingId }, { status: 'booked', date, time });
   await updateSession(phone, 'IDLE');
 
   // Schedule reminders
@@ -478,6 +481,21 @@ async function handleSelectCancelBooking(session, phone, message) {
   notifyWaitlistForSlot(selectedBooking.date, selectedBooking.time);
 
   return sendMessage(phone, `Aapka *${selectedBooking.service}* ${formatDisplayDate(selectedBooking.date)} ka booking cancel ho gaya hai ✅\nKabhi bhi wapas aao! 😊`);
+}
+
+async function handleCheckMyBookings(phone) {
+  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ date: 1 });
+
+  if (activeBookings.length === 0) {
+    return sendMessage(phone, "Aapki is number par koi aane wali active booking nahi hai. ❌");
+  }
+
+  let text = `Aapki is number se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
+  activeBookings.forEach((b, idx) => {
+    text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time}\n`;
+  });
+  text += "\nAgar reschedule ya cancel karna ho, toh directly bol sakte hain!";
+  return sendMessage(phone, text);
 }
 
 // ─────────────────────────────────────────────
