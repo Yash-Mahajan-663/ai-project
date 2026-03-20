@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const Reminder = require('../models/Reminder');
-const { sendMessage } = require('../services/whatsappService');
+const { sendMessage, sendReminderTemplate } = require('../services/whatsappService');
 
 function parseToDate(dateStr, timeStr) {
   try {
@@ -73,7 +73,12 @@ function initScheduler() {
 
       if (pendingReminders && pendingReminders.length > 0) {
         for (let task of pendingReminders) {
-          await sendMessage(task.phone, task.message);
+          // If task is feedback, we just send text. Else, send Reminder Template!
+          if (task.message.includes('experience')) {
+            await sendMessage(task.phone, task.message);
+          } else {
+            await sendReminderTemplate(task.phone, 'Customer', task.message);
+          }
           task.sent = true;
           await task.save();
         }
