@@ -1,10 +1,14 @@
 const { handleIncomingMessage } = require('../services/botService');
+const connectDB = require('../config/db');
 
 /**
  * Handles incoming WhatsApp Webhooks from 11za
  */
 async function receiveWebhook(req, res) {
   try {
+    // Ensure database is connected before processing
+    await connectDB();
+    
     const payload = req.body;
 
     // ── RAW PAYLOAD LOG — Dekho 11za exactly kya bhej raha hai ──
@@ -54,13 +58,12 @@ async function receiveWebhook(req, res) {
     console.log('✅ Routing to botService...');
     console.log('═'.repeat(60) + '\n');
 
-    // Respond to 11za immediately (200 OK), process in background
-    res.status(200).send({ status: 'success' });
+    // IMPORTANT for Vercel: We MUST await the processing before finishing the request.
+    // If we send res.status(200) first, Vercel might kill the function before handleIncomingMessage finishes.
+    await handleIncomingMessage(phone, messageBody);
 
-    // Handle asynchronously
-    handleIncomingMessage(phone, messageBody).catch(e => {
-      console.error(`❌ Error handling message from ${phone}:`, e.message);
-    });
+    // Respond to 11za
+    res.status(200).send({ status: 'success' });
 
   } catch (err) {
     console.error('❌ WEBHOOK CRASH:', err);
