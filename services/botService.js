@@ -119,7 +119,7 @@ async function handleIncomingMessage(phone, message, senderName) {
   // ── Stage-based flows (no AI needed — structured input expected) ──
   switch (stage) {
     case 'BOOKING_ASK_DATE':
-      return handleBookingDateResponse(session, phone, message);
+      return handleBookingDateResponse(session, phone, message, senderName);
 
     case 'BOOKING_ASK_TIME':
       return handleBookingTimeResponse(session, phone, message, senderName);
@@ -128,7 +128,7 @@ async function handleIncomingMessage(phone, message, senderName) {
       return handleSelectRescheduleBooking(session, phone, message);
 
     case 'RESCHEDULE_ASK_DATE':
-      return handleRescheduleDateResponse(session, phone, message);
+      return handleRescheduleDateResponse(session, phone, message, senderName);
 
     case 'RESCHEDULE_ASK_TIME':
       return handleRescheduleTimeResponse(session, phone, message, senderName);
@@ -266,18 +266,29 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
   return sendMessage(phone, text);
 }
 
-async function handleBookingDateResponse(session, phone, message) {
-  const ai = await analyzeMessage(`Booking ke liye date batai: "${message}"`);
+async function handleBookingDateResponse(session, phone, message, senderName) {
+  const ai = await analyzeMessage(`Booking ke liye date (aur time agar ho toh) batai: "${message}"`);
   const dateStr = ai.date || message.trim();
 
   if (checkPastDateTime(dateStr, null)) {
     return sendMessage(phone, `⚠️ "${formatDisplayDate(dateStr)}" pehle hi beet chuka hai. Kripya aaj ya uske aage ki koi date chunein.`);
   }
 
-  await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
+  // If user provided both Date and Time together, skip asking for time!
+  if (ai.time) {
+    if (checkPastDateTime(dateStr, ai.time)) {
+      await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
+      await updateSession(phone, 'BOOKING_ASK_TIME');
+      return sendMessage(phone, `📅 *${formatDisplayDate(dateStr)}* — Lekin woh time (${ai.time}) nikal chuka hai. Kripya future ka time chunein.`);
+    }
+    const booking = session.draft_booking_id; 
+    return confirmBooking(phone, booking._id, booking.service, dateStr, ai.time, senderName);
+  }
 
+  // Only date provided, ask for time
+  await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
   await updateSession(phone, 'BOOKING_ASK_TIME');
-  return sendMessage(phone, `📅 *${dateStr}* — Theek hai!\nKis time par aana chahenge? (e.g., 10 AM, 3 PM)`);
+  return sendMessage(phone, `📅 *${formatDisplayDate(dateStr)}* — Theek hai!\nKis time par aana chahenge? (e.g., 10 AM, 3 PM)`);
 }
 
 async function handleBookingTimeResponse(session, phone, message, senderName) {
@@ -360,18 +371,40 @@ async function handleSelectRescheduleBooking(session, phone, message) {
   return sendMessage(phone, `Naya date kya hoga? (e.g., Kal, 25 March)`);
 }
 
-async function handleRescheduleDateResponse(session, phone, message) {
-  const ai = await analyzeMessage(`Reschedule ke liye naya date: "${message}"`);
+async function handleRescheduleDateResponse(session, phone, message, senderName) {
+  const ai = await analyzeMessage(`Reschedule ke liye naya date (aur time agar ho toh): "${message}"`);
   const dateStr = ai.date || message.trim();
 
   if (checkPastDateTime(dateStr, null)) {
     return sendMessage(phone, `⚠️ "${formatDisplayDate(dateStr)}" pehle hi beet chuka hai. Kripya aaj ya uske aage ki koi date chunein.`);
   }
 
+  // If user provides both date and time in one go
+  if (ai.time) {
+    const booking = await Booking.findById(session.draft_booking_id);
+    if (checkPastDateTime(dateStr, ai.time)) {
+      await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
+      await updateSession(phone, 'RESCHEDULE_ASK_TIME');
+      return sendMessage(phone, `📅 *${formatDisplayDate(dateStr)}* — Lekin woh time (${ai.time}) nikal chuka hai. Kripya future ka time chunein.`);
+    }
+
+    const isAvailable = await checkSlotAvailability(dateStr, ai.time);
+    if (!isAvailable) {
+      await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
+      await updateSession(phone, 'RESCHEDULE_ASK_TIME');
+      return sendMessage(phone, 'Ye slot already booked hai 😅 Koi aur time batao:');
+    }
+
+    await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr, time: ai.time });
+    await updateSession(phone, 'IDLE');
+    scheduleAppointmentReminders(booking._id, phone, dateStr, ai.time, booking.service);
+    return sendRescheduleConfirmTemplate(phone, senderName, booking.service, formatDisplayDate(dateStr), ai.time);
+  }
+
   await Booking.updateOne({ _id: session.draft_booking_id }, { date: dateStr });
 
   await updateSession(phone, 'RESCHEDULE_ASK_TIME');
-  return sendMessage(phone, `📅 *${dateStr}* — Theek hai!\nNaya time kya hoga?`);
+  return sendMessage(phone, `📅 *${formatDisplayDate(dateStr)}* — Theek hai!\nNaya time kya hoga?`);
 }
 
 async function handleRescheduleTimeResponse(session, phone, message, senderName) {
