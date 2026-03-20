@@ -3,7 +3,7 @@ const Booking = require('../models/Booking');
 const Waitlist = require('../models/Waitlist');
 const Feedback = require('../models/Feedback');
 const { analyzeMessage } = require('./groqService');
-const { sendMessage, sendServiceMenuTemplate, sendBookingConfirmTemplate } = require('./whatsappService');
+const { sendMessage, sendServiceMenuTemplate, sendBookingConfirmTemplate, sendRescheduleConfirmTemplate } = require('./whatsappService');
 const { getPriceForService } = require('./pricingService');
 const { scheduleAppointmentReminders, scheduleFeedbackRequest } = require('../cron/scheduler');
 const { format, parseISO, isValid } = require('date-fns');
@@ -128,7 +128,7 @@ async function handleIncomingMessage(phone, message, senderName) {
       return handleRescheduleDateResponse(session, phone, message);
 
     case 'RESCHEDULE_ASK_TIME':
-      return handleRescheduleTimeResponse(session, phone, message);
+      return handleRescheduleTimeResponse(session, phone, message, senderName);
 
     case 'WAITING_FEEDBACK':
       return handleFeedbackResponse(session, phone, message);
@@ -343,7 +343,7 @@ async function handleRescheduleDateResponse(session, phone, message) {
   return sendMessage(phone, `📅 *${dateStr}* — Theek hai!\nNaya time kya hoga?`);
 }
 
-async function handleRescheduleTimeResponse(session, phone, message) {
+async function handleRescheduleTimeResponse(session, phone, message, senderName) {
   const ai = await analyzeMessage(`New time: "${message}"`);
   const timeStr = ai.time;
 
@@ -368,7 +368,8 @@ async function handleRescheduleTimeResponse(session, phone, message) {
   await updateSession(phone, 'IDLE');
   scheduleAppointmentReminders(booking._id, phone, booking.date, timeStr, booking.service);
 
-  return sendMessage(phone, `Aapka appointment reschedule ho gaya hai ✅\n📅 Naya Date: ${booking.date}\n⏰ Naya Time: ${timeStr}`);
+  const displayDate = formatDisplayDate(booking.date);
+  return sendRescheduleConfirmTemplate(phone, senderName, booking.service, displayDate, timeStr);
 }
 
 async function handleCancelMode(session, phone) {

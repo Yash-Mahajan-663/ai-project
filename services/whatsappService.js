@@ -124,6 +124,17 @@ async function sendBookingConfirmTemplate(phone, customerName, service, date, ti
 }
 
 // ─────────────────────────────────────────────
+// 5. Shortcut: Reschedule Confirmation Template
+//    Template body e.g.: "Aapka {{1}} reschedule ho gaya hai. Nayi date: {{2}}, Naya time: {{3}} ✅"
+// ─────────────────────────────────────────────
+async function sendRescheduleConfirmTemplate(phone, customerName, service, date, time) {
+  return sendTemplate(phone, customerName, 'saloon_reschedule_confirm', {
+    data: [service, date, time],
+    tags: 'saloon,reschedule'
+  });
+}
+
+// ─────────────────────────────────────────────
 // 5. Shortcut: Reminder Template
 //    Template body e.g.: "Aapka {{1}} appointment {{2}} mein hai ⏰"
 // ─────────────────────────────────────────────
@@ -139,5 +150,6 @@ module.exports = {
   sendTemplate,
   sendServiceMenuTemplate,
   sendBookingConfirmTemplate,
+  sendRescheduleConfirmTemplate,
   sendReminderTemplate
 };
