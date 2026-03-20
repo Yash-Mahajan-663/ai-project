@@ -28,10 +28,10 @@ const connectDB = async () => {
   console.log('🔌 Connecting to MongoDB:', safeURI);
 
   connectionPromise = mongoose.connect(mongoURI, {
-    serverSelectionTimeoutMS: 8000,   // Fail fast — show error in 8s instead of hanging forever
+    serverSelectionTimeoutMS: 8000,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 8000,
-    bufferCommands: false,            // Don't buffer — fail immediately if not connected
+    // bufferCommands: true (default) — allow queuing DB calls made before connection is ready
   })
     .then((db) => {
       console.log('✅ MongoDB Connected! DB Name:', db.connection.name);
