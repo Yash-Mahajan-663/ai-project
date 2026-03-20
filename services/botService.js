@@ -492,7 +492,7 @@ async function handleCheckMyBookings(phone) {
 
   let text = `Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
   activeBookings.forEach((b, idx) => {
-    text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time}\n`;
+    text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time} [${b.status.toUpperCase()}]\n`;
   });
   text += "\nAgar reschedule ya cancel karna ho, toh directly bol sakte hain!";
   return sendMessage(phone, text);
