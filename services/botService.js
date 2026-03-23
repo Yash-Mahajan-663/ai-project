@@ -102,8 +102,17 @@ async function handleIncomingMessage(phone, message, senderName) {
   const { stage } = session;
   console.log(`🎯 [BOT] Phone: ${phone} | Stage: ${stage} | Msg: "${message}"`);
 
-  // ALWAYS analyze message first to detect if user wants to BREAK OUT of a flow (like saying 'Hello' or 'Cancel')
-  const ai = await analyzeMessage(message);
+  // Provide local context to the AI so it doesn't "forget" what we're talking about
+  const contextHistory = [];
+  if (session.stage !== 'IDLE') {
+    const booking = session.draft_booking_id;
+    contextHistory.push({ 
+      role: 'assistant', 
+      content: `[CONTEXT] User is currently booking: ${booking?.service || 'None'}. Date: ${booking?.date || 'None'}. Time: ${booking?.time || 'None'}. Stage: ${session.stage}.` 
+    });
+  }
+
+  const ai = await analyzeMessage(message, contextHistory);
   console.log(`🤖 [GROQ] Intent: ${ai.intent} | Service: ${ai.service} | Date: ${ai.date} | Time: ${ai.time}`);
 
   // Breakout intents: If user sends a greeting, wants services menu, or wants to cancel in the middle of a flow
