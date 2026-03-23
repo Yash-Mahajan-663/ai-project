@@ -36,26 +36,24 @@ function formatDisplayDate(dateStr) {
 // ─────────────────────────────────────────────
 function checkPastDateTime(dateStr, timeStr) {
   try {
-    // 1. Get current time in IST (UTC + 5.5 hours)
+    // 1. Get current IST time using Intl for robustness
     const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istNow = new Date(now.getTime() + istOffset);
+    const istDateStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+    const istNow = new Date(istDateStr);
 
-    // Create 'today' date at midnight IST
-    const today = new Date(istNow);
-    today.setUTCHours(0, 0, 0, 0);
+    const todayIST = new Date(istNow);
+    todayIST.setHours(0, 0, 0, 0);
 
     // Parse user date
     const parsedDate = new Date(dateStr);
     if (isNaN(parsedDate.getTime())) return false;
+    parsedDate.setHours(0, 0, 0, 0);
 
-    parsedDate.setUTCHours(0, 0, 0, 0);
+    // strictly before today (IST)
+    if (parsedDate < todayIST) return true;
 
-    // 1. Is the date strictly before today? (e.g., yesterday)
-    if (parsedDate < today) return true;
-
-    // 2. Is the date today, and time is provided, and time is in the past?
-    if (parsedDate.getTime() === today.getTime() && timeStr) {
+    // if today (IST), check time
+    if (parsedDate.getTime() === todayIST.getTime() && timeStr) {
       const timeMatch = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM|am|pm)?/i);
       if (timeMatch) {
         let hours = parseInt(timeMatch[1], 10);
@@ -65,17 +63,17 @@ function checkPastDateTime(dateStr, timeStr) {
         if (modifier === 'PM' && hours < 12) hours += 12;
         if (modifier === 'AM' && hours === 12) hours = 0;
 
-        const currentHour = istNow.getUTCHours();
-        const currentMin = istNow.getUTCMinutes();
+        const currentHour = istNow.getHours();
+        const currentMin = istNow.getMinutes();
 
-        // compare hours/mins in IST
         if (hours < currentHour || (hours === currentHour && mins <= currentMin)) {
           return true;
         }
       }
     }
     return false;
-  } catch {
+  } catch (err) {
+    console.error('Timezone check error:', err);
     return false;
   }
 }
@@ -159,10 +157,10 @@ async function routeByIntent(ai, session, phone, senderName) {
   switch (intent) {
     case 'GREETING':
       await updateSession(phone, 'IDLE');
-      if (reply && reply.length > 5) { // Ensure there is a greeting text
-        await sendMessage(phone, reply);
+      if (reply) {
+        return sendMessage(phone, reply);
       }
-      return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
+      return sendMessage(phone, 'Hi! Kaise help kar sakta hoon? Aap services dekhne ke liye "Menu" likh sakte hain.');
 
     case 'SERVICES':
       // User asked about services or prices. Send AI's explanation first!
@@ -192,6 +190,10 @@ async function routeByIntent(ai, session, phone, senderName) {
       await updateSession(phone, 'WAITING_FEEDBACK');
       return sendMessage(phone, reply || 'Aap apna feedback share kar sakte hain. ⭐ (1-5)');
 
+    case 'OUT_OF_SCOPE':
+      await updateSession(phone, 'IDLE');
+      return sendMessage(phone, reply || 'Maafi chahta hoon, main sirf saloon bookings mein help kar sakta hoon. 🙏');
+
     default:
       // If user sends an unrecognized message, show the menu template again
       await updateSession(phone, 'IDLE');
@@ -213,19 +215,30 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
 
   const price = getPriceForService(service);
 
-  // Create draft booking in MongoDB
-  const draftBooking = new Booking({
-    phone,
-    status: 'pending',
-    service: service || null,
-    price: price || null,
-    date: date || null
-  });
-  await draftBooking.save();
-
-  // Update session with draft_booking_id
-  session.draft_booking_id = draftBooking._id;
-  await session.save();
+  let draftBooking;
+  // ISSUE FIX: Re-use existing draft booking instead of creating a new one every time
+  if (session.draft_booking_id && session.draft_booking_id.status === 'pending') {
+    draftBooking = session.draft_booking_id;
+    draftBooking.service = service || draftBooking.service;
+    draftBooking.price = price || draftBooking.price;
+    draftBooking.date = date || draftBooking.date;
+    draftBooking.updated_at = new Date();
+    await draftBooking.save();
+  } else {
+    // Create new draft booking in MongoDB
+    draftBooking = new Booking({
+      phone,
+      status: 'pending',
+      service: service || null,
+      price: price || null,
+      date: date || null
+    });
+    await draftBooking.save();
+    
+    // Update session with new draft_booking_id
+    session.draft_booking_id = draftBooking._id;
+    await session.save();
+  }
 
   // Skip steps that AI already extracted
   if (!service) {
@@ -254,7 +267,15 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
   const draftBookingId = session.draft_booking_id;
   if (!draftBookingId) return resetAndReply(phone, "Session expire ho gaya. 'Book appointment' likhkar firse try karein.");
 
-  const service = _extractServiceFromText(rawMessage) || ai.service || rawMessage.trim();
+  let service = _extractServiceFromText(rawMessage) || ai.service || rawMessage.trim();
+  
+  // Normalize service name from PRICES keys
+  const { PRICES } = require('./pricingService');
+  const normalized = Object.keys(PRICES).find(k => k.toLowerCase() === service.toLowerCase().trim());
+  if (normalized) {
+    service = normalized;
+  }
+
   const price = getPriceForService(service);
 
   // Update booking
@@ -323,7 +344,7 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
   }
 
   // Update booking status in MongoDB. Also save date in case it was a bulk-response skip
-  await Booking.updateOne({ _id: bookingId }, { status: 'booked', date, time });
+  await Booking.updateOne({ _id: bookingId, status: 'pending' }, { status: 'booked', date, time });
   await updateSession(phone, 'IDLE');
 
   // Schedule reminders
@@ -544,16 +565,16 @@ async function processWaitlist(phone, date, time) {
 }
 
 async function notifyWaitlistForSlot(date, time) {
-  const waitingUser = await Waitlist.findOne({
+  const waitingUsers = await Waitlist.find({
     date,
     time,
     notified: false
   });
 
-  if (waitingUser) {
-    sendMessage(waitingUser.phone, `🎉 Ek slot free ho gaya hai! ${date} ko ${time} baje.\nReply "book" agar aap lena chahte hain.`);
-    waitingUser.notified = true;
-    await waitingUser.save();
+  for (const user of waitingUsers) {
+    await sendMessage(user.phone, `🎉 Ek slot free ho gaya hai! ${date} ko ${time} baje.\nJaldi ho sake toh reply "Book appointment" karein, kyunki slots pehle aao pehle pao ke basis par hain! 🏃‍♂️`);
+    user.notified = true;
+    await user.save();
   }
 }
 

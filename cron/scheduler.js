@@ -35,7 +35,7 @@ function scheduleAppointmentReminders(bookingId, phone, dateStr, timeStr, servic
   // Exact 2 Hours before appointment
   const twoHoursBefore = new Date(appointmentTime.getTime() - 2 * 60 * 60 * 1000);
   if (twoHoursBefore > new Date()) {
-    createReminder(bookingId, phone, `Aapka ${service} appointment 2 ghante mein hai (${timeStr}) ⏰\nHum aapka intezaar kar rahe hain! 😊`, twoHoursBefore);
+    createReminder(bookingId, phone, `Aapka ${service} appointment 2 ghante mein hai (${timeStr}) ⏰\nHum aapka intezaar kar rahe hain! 😊\nAgar aap aa rahe hain toh "Confirm" reply karein.`, twoHoursBefore);
   }
 }
 
