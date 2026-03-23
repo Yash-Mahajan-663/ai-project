@@ -107,7 +107,7 @@ async function sendTemplate(phone, customerName, templateName, options = {}) {
 // ─────────────────────────────────────────────
 async function sendServiceMenuTemplate(phone, customerName, service, type = "chatbot") {
   return sendTemplate(phone, customerName, 'saloon_services_3', {
-    data: [customerName, service, type],
+    data: [customerName, service || "Support", type],
     tags: 'saloon,services'
   });
 }
