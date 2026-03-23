@@ -65,6 +65,7 @@ async function analyzeMessage(userMessage, history = []) {
     });
 
     const raw = completion.choices[0].message.content;
+    console.error('Raw was::::::::::::', raw, "completion:::::::::", completion);
     let parsed;
     try {
       parsed = JSON.parse(raw);

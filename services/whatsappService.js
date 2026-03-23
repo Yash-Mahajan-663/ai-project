@@ -3,9 +3,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Correct base URL confirmed from 11za Postman docs: https://api.11za.in/apis
-const baseUrl = (process.env.ELEVENZA_API_BASE_URL || 'https://internal.11za.in/apis').replace(/\/$/, '');
+const baseUrl = process.env.ELEVENZA_API_BASE_URL;
 const token = process.env.ELEVENZA_AUTH_TOKEN;
-const originWebsite = process.env.ELEVENZA_ORIGIN_WEBSITE || 'https://engees.in';
+const originWebsite = process.env.ELEVENZA_ORIGIN_WEBSITE;
 
 // ─────────────────────────────────────────────
 // Reusable internal axios caller with auth
