@@ -164,12 +164,16 @@ async function routeByIntent(ai, session, phone, senderName) {
 
     case 'SERVICES':
       // User asked about services or prices. Send AI's explanation first!
-      await updateSession(phone, 'IDLE');
       if (reply) {
         await sendMessage(phone, reply);
       }
-      // Follow up with the interactive buttons
-      return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
+      // ONLY send the interactive buttons if NOT currently in a booking flow
+      if (session.stage === 'IDLE' || session.stage === 'WAITING_FEEDBACK' || lowerMsg.includes('menu')) {
+        await updateSession(phone, 'IDLE');
+        return sendServiceMenuTemplate(phone, senderName, service, 'Chatbot');
+      }
+      // Otherwise, just stay in current flow
+      return;
     case 'BOOKING':
       return startBookingWithAI(session, phone, service, date, time, reply, senderName);
 
