@@ -559,9 +559,12 @@ async function notifyWaitlistForSlot(date, time) {
 
 function _extractServiceFromText(text) {
   const t = text.toLowerCase();
-  if (/haircut|baal|hair/.test(t)) return 'Haircut';
+  if (/haircut.*beard|beard.*haircut|baal.*daadhi|daadhi.*baal/.test(t)) return 'Haircut & Beard';
+  if (/haircut.*facial|facial.*haircut|baal.*face|face.*baal/.test(t)) return 'Haircut & Facial';
+  if (/beard.*facial|facial.*beard|daadhi.*face|face.*daadhi/.test(t)) return 'Beard & Facial';
+  if (/haircut|baal|hair|cutting/.test(t)) return 'Haircut';
   if (/beard|daadhi|trim/.test(t)) return 'Beard';
-  if (/facial|face/.test(t)) return 'Facial';
+  if (/facial|face|massage|clean/.test(t)) return 'Facial';
   return null;
 }
 

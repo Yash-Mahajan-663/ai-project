@@ -6,10 +6,12 @@ const MODEL = 'llama-3.3-70b-versatile'; // More reliable JSON output than 8b-in
 // ─────────────────────────────────────────────────────
 // System Prompt — Saloon AI ka personality & rules
 // ─────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `
+function getSystemPrompt() {
+  const today = new Date().toISOString().split('T')[0];
+  return `
 You are a JSON extraction engine for a WhatsApp saloon booking bot. Your ONLY job is to extract structured data from user messages and return a strict JSON object.
 
-Today's date: ${new Date().toISOString().split('T')[0]}
+Today's date: ${today}
 
 YOU MUST RETURN EXACTLY THIS JSON STRUCTURE — NO OTHER KEYS ALLOWED:
 {
@@ -27,12 +29,21 @@ STRICT RULES:
 4. intent must be exactly one value from the allowed list.
 5. reply must be short (1-2 sentences), friendly, in Hinglish (Hindi + English mix).
 6. For GREETING intent: reply with a welcome message.
-7. For SERVICES intent: reply asking what service they want.
+7. For SERVICES intent: reply with a friendly intro to our services or ask what they want.
 8. For dates: "aaj" = today, "kal" = tomorrow (today + 1 day), "parso" = day after tomorrow (today + 2 days).
 9. EXACT TIME REQUIRED: If the user gives a vague time like "shaam ko", "subah", "afternoon" without an exact hour, YOU MUST set "time" to null and ask for the exact time in the "reply". ONLY use formats like "10:00 AM" or "4:30 PM" for the "time" field.
+10. SERVICE EXTRACTION: If the user mentions "baal" or "cutting", it is "Haircut". If they mention "daadhi" or "trim", it is "Beard". If they mention "massage" or "face clean", it is typically "Facial". Map their intent to the closest available service name.
 
-AVAILABLE SERVICES: Haircut (₹200), Beard (₹100), Facial (₹500), Haircut & Beard (₹300)
+AVAILABLE SERVICES: 
+- Haircut (₹200)
+- Beard (₹100)
+- Facial (₹500)
+- Haircut & Beard (₹300)
+- Haircut & Facial (₹700)
+- Beard & Facial (₹600)
+- Haircut, Beard & Facial (₹800)
 `;
+}
 
 // ─────────────────────────────────────────────────────
 // Main function: User message → AI parsed response
@@ -51,7 +62,7 @@ async function analyzeMessage(userMessage, history = []) {
 
   try {
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: getSystemPrompt() },
       ...history,
       { role: 'user', content: userMessage }
     ];
@@ -65,21 +76,22 @@ async function analyzeMessage(userMessage, history = []) {
     });
 
     const raw = completion.choices[0].message.content;
-    console.error('Raw was::::::::::::', raw, "completion:::::::::", completion);
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (parseErr) {
-      console.error('[GROQ] JSON parse failed. Raw was:', raw);
+      console.error('[GROQ] JSON parse failed. Raw:', raw);
       throw parseErr;
     }
 
-    // Validate and extract only the expected 5 keys (ignore any extra keys model hallucinated)
+    // Safeguard: handle case where model returns "null" as string
+    const sanitize = (val) => (val === 'null' || val === '' ? null : val);
+
     const result = {
       intent: parsed.intent || 'UNKNOWN',
-      service: parsed.service || null,
-      date: parsed.date || null,
-      time: parsed.time || null,
+      service: sanitize(parsed.service),
+      date: sanitize(parsed.date),
+      time: sanitize(parsed.time),
       reply: parsed.reply || 'Kuch samajh nahi aaya, dobara try karein.'
     };
 
@@ -128,9 +140,13 @@ function _simulateFallback(message) {
 }
 
 function _extractService(msg) {
-  if (/haircut|baal|hair/.test(msg)) return 'Haircut';
-  if (/beard|daadhi/.test(msg)) return 'Beard';
-  if (/facial|face/.test(msg)) return 'Facial';
+  const t = msg.toLowerCase();
+  if (/haircut.*beard|beard.*haircut|baal.*daadhi|daadhi.*baal/.test(t)) return 'Haircut & Beard';
+  if (/haircut.*facial|facial.*haircut|baal.*face|face.*baal/.test(t)) return 'Haircut & Facial';
+  if (/beard.*facial|facial.*beard|daadhi.*face|face.*daadhi/.test(t)) return 'Beard & Facial';
+  if (/haircut|baal|hair|cutting/.test(t)) return 'Haircut';
+  if (/beard|daadhi|trim/.test(t)) return 'Beard';
+  if (/facial|face|massage|clean/.test(t)) return 'Facial';
   return null;
 }
 
