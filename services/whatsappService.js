@@ -118,7 +118,7 @@ async function sendServiceMenuTemplate(phone, customerName, service, type = "cha
 async function sendBookingConfirmTemplate(phone, customerName, service, date, time) {
   return sendTemplate(phone, customerName, 'saloon_booking_confirm', {
     // Adding customerName so that 11za variable {{1}} maps to Name, {{2}} to Service, {{3}} to Date, {{4}} to Time
-    data: [customerName, service, date, time],
+    data: [service, date, time],
     tags: 'saloon,booking'
   });
 }
@@ -128,7 +128,7 @@ async function sendBookingConfirmTemplate(phone, customerName, service, date, ti
 // ─────────────────────────────────────────────
 async function sendRescheduleConfirmTemplate(phone, customerName, service, date, time) {
   return sendTemplate(phone, customerName, 'saloon_reschedule_confirm', {
-    data: [customerName, service, date, time],
+    data: [service, date, time],
     tags: 'saloon,reschedule'
   });
 }
