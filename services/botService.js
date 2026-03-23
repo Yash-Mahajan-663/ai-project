@@ -119,7 +119,7 @@ async function handleIncomingMessage(phone, message, senderName) {
   if (stage !== 'IDLE' && stage !== 'WAITING_FEEDBACK') {
     if (ai.intent === 'GREETING' || ai.intent === 'CANCEL' || ai.intent === 'SERVICES') {
       console.log(`🚀 Flow broken by user intent: ${ai.intent}`);
-      return routeByIntent(ai, session, phone, senderName);
+      return routeByIntent(ai, session, phone, senderName, lowerMsg);
     }
   }
 
@@ -153,13 +153,13 @@ async function handleIncomingMessage(phone, message, senderName) {
   }
 
   // Normal IDLE intent routing
-  return routeByIntent(ai, session, phone, senderName);
+  return routeByIntent(ai, session, phone, senderName, lowerMsg);
 }
 
 // ─────────────────────────────────────────────
 // Route based on AI-detected intent
 // ─────────────────────────────────────────────
-async function routeByIntent(ai, session, phone, senderName) {
+async function routeByIntent(ai, session, phone, senderName, lowerMsg) {
   const { intent, service, date, time, reply } = ai;
   console.log("session, phone, service, date, time, reply", session, phone, service, date, time, reply)
 
