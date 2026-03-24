@@ -36,7 +36,7 @@ async function _doTranscribe(url, filePath) {
       url: url,
       responseType: 'stream',
       headers: {
-        'Authorization': process.env.ELEVENZA_AUTH_TOKEN, // 11za normally expects raw token
+        'Authorization': `Bearer ${process.env.ELEVENZA_AUTH_TOKEN}`, // 11za normally expects raw token
         'User-Agent': 'Mozilla/5.0' // Some CDNs block default axios agent
       }
     });
@@ -45,11 +45,27 @@ async function _doTranscribe(url, filePath) {
     response.data.pipe(writer);
 
     await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
+      writer.on('finish', () => {
+        console.log("💾 File fully saved to disk.");
+        resolve();
+      });
+      writer.on('error', (err) => {
+        console.error("❌ File System Error:", err);
+        reject(err);
+      });
     });
 
     console.log(`🎙️ [AUDIO] Transcribing file: ${filePath}`);
+
+    // CHECK: Kya file sach mein disk par hai aur size zero toh nahi?
+    const stats = fs.statSync(filePath);
+    console.log(`📏 File Size: ${stats.size} bytes`);
+
+    if (stats.size === 0) {
+      throw new Error("Downloaded file is empty (0 bytes). Check Auth Token!");
+    }
+
+    console.log(`🎙️ Sending to GROQ Whisper...`);
 
     // 2. Transcribe using GROQ Whisper
     const transcription = await groq.audio.transcriptions.create({
