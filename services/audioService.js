@@ -32,13 +32,13 @@ async function _doTranscribe(url, filePath) {
     
     // 1. Download audio file
     const response = await axios({
-      method: 'get',
-      url: url,
-      responseType: 'stream',
-      headers: {
+        method: 'get',
+        url: url,
+        responseType: 'stream',
+        headers: {
         'Authorization': `Bearer ${process.env.ELEVENZA_AUTH_TOKEN}`
-      }
-    });
+        }
+      });
 
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
@@ -54,7 +54,8 @@ async function _doTranscribe(url, filePath) {
     const transcription = await groq.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
       model: 'whisper-large-v3', 
-      response_format: 'verbose_json',
+      response_format: 'json',
+      language: 'hi', // Optimized for Hindi/Hinglish
     });
 
     console.log('✅ [AUDIO] Transcription SUCCESS:', transcription.text);
