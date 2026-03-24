@@ -49,10 +49,14 @@ async function receiveWebhook(req, res) {
         messageBody = interactive.list_reply.id || interactive.list_reply.title;
       }
     }
-    // Audio/Voice messages (Speech-to-Text)
-    else if (messageData?.type === 'audio' || messageData?.type === 'voice') {
-      const audioUrl = messageData.audio?.link || messageData.voice?.link || messageData.link;
-      if (audioUrl) {
+    // Audio/Voice messages (Speech-to-Text) - Handling 11za specific payload structure
+    else if (
+      messageData.content?.contentType === 'media'
+    ) {
+      const audioUrl = messageData.content?.media?.url
+      const mediaType = messageData.content?.media?.type;
+
+      if (audioUrl && mediaType === 'voice') {
         console.log(`🎙️ VOICE MESSAGE received from ${phone}. Transcribing...`);
         const { transcribeAudio } = require('../services/audioService');
         messageBody = await transcribeAudio(audioUrl);
@@ -63,13 +67,15 @@ async function receiveWebhook(req, res) {
         console.log(`✅ TRANSCRIBED TEXT: "${messageBody}"`);
       }
     }
-    // Text extraction (11za common fallbacks)
-    else {
+    
+    // Text extraction fallback (if not processed by interactive or voice)
+    if (!messageBody) {
       messageBody =
         messageData.text?.body ||
         messageData.text ||
         payload.UserResponse ||
         payload.message ||
+        payload.content?.body || 
         payload.content?.text ||
         '';
 
