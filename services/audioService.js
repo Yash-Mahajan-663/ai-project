@@ -32,13 +32,14 @@ async function _doTranscribe(url, filePath) {
     
     // 1. Download audio file
     const response = await axios({
-        method: 'get',
-        url: url,
-        responseType: 'stream',
-        headers: {
-        'Authorization': `Bearer ${process.env.ELEVENZA_AUTH_TOKEN}`
-        }
-      });
+      method: 'get',
+      url: url,
+      responseType: 'stream',
+      headers: {
+        'Authorization': process.env.ELEVENZA_AUTH_TOKEN, // 11za normally expects raw token
+        'User-Agent': 'Mozilla/5.0' // Some CDNs block default axios agent
+      }
+    });
 
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
@@ -62,7 +63,12 @@ async function _doTranscribe(url, filePath) {
     return transcription.text;
 
   } catch (err) {
-    console.error('❌ [AUDIO] Transcription Error:', err.message);
+    if (err.response) {
+      console.error(`❌ [AUDIO] HTTP Error ${err.response.status}:`, err.response.statusText);
+      // Log response data if it's not a stream (Axios error response for stream might be tricky)
+    } else {
+      console.error('❌ [AUDIO] Error:', err.message);
+    }
     return null;
   } finally {
     // 3. Clean up temp file
