@@ -205,7 +205,7 @@ async function routeByIntent(ai, session, phone, senderName, lowerMsg) {
 
     case 'OUT_OF_SCOPE':
       await updateSession(phone, 'IDLE');
-      return sendMessage(phone, reply || 'Maafi chahta hoon, main sirf saloon bookings mein help kar sakta hoon. 🙏');
+      return sendMessage(phone, reply || 'Maafi chahta hoon, main sirf appointment bookings mein help kar sakta hoon. 🙏');
 
     default:
       // If user sends an unrecognized message, show the menu template again
