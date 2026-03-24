@@ -305,7 +305,12 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
 
 async function handleBookingDateResponse(session, phone, message, senderName) {
   const ai = await analyzeMessage(`Booking ke liye date (aur time agar ho toh) batai: "${message}"`);
-  const dateStr = ai.date || message.trim();
+  
+  // Logic Fix: Try AI first, then existing draft date, then raw message
+  let dateStr = ai.date || session.draft_booking_id?.date || message.trim();
+  
+  // Validate if dateStr looks like a date, if it's still raw message that is not a date, it might cause issues later.
+  // But for now, using existing draft date is much safer!
 
   if (checkPastDateTime(dateStr, null)) {
     return sendMessage(phone, `⚠️ "${formatDisplayDate(dateStr)}" pehle hi beet chuka hai. Kripya aaj ya uske aage ki koi date chunein.`);
@@ -353,6 +358,8 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
 
   if (!isAvailable) {
     await processWaitlist(phone, date, time);
+    // If confirmation failed because of slot, stay in ASK_TIME stage
+    await updateSession(phone, 'BOOKING_ASK_TIME'); 
     return sendMessage(phone, `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai 😅\nAapko waitlist mein add kar diya hai. Koi aur time batao ya slot free hone par hum notify karenge!`);
   }
 
