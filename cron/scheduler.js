@@ -31,11 +31,21 @@ function parseToDate(dateStr, timeStr) {
 
 function scheduleAppointmentReminders(bookingId, phone, dateStr, timeStr, service) {
   const appointmentTime = parseToDate(dateStr, timeStr);
+  const now = new Date();
 
-  // Exact 2 Hours before appointment
+  // Standard 2 Hours before appointment
   const twoHoursBefore = new Date(appointmentTime.getTime() - 2 * 60 * 60 * 1000);
-  if (twoHoursBefore > new Date()) {
+  
+  if (twoHoursBefore > now) {
     createReminder(bookingId, phone, `Aapka ${service} appointment 2 ghante mein hai (${timeStr}) ⏰\nHum aapka intezaar kar rahe hain! 😊\nAgar aap aa rahe hain toh "Confirm" reply karein.`, twoHoursBefore);
+  } else {
+    // Handling "last-minute" bookings: if appointment is in less than 2 hours 
+    // but at least 15 minutes away, send reminder in 1 minute!
+    const fifteenMinsAway = new Date(now.getTime() + 15 * 60 * 1000);
+    if (appointmentTime > fifteenMinsAway) {
+      const oneMinLater = new Date(now.getTime() + 60 * 1000);
+      createReminder(bookingId, phone, `Aapka ${service} appointment thodi der mein hai (${timeStr}) ⏰\nTaiyaar ho jaiye! Agar aap aa rahe hain toh "Confirm" reply karein.`, oneMinLater);
+    }
   }
 }
 
