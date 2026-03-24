@@ -38,6 +38,7 @@ async function receiveWebhook(req, res) {
     // ── Message Body Extract ──
     let messageBody = '';
     const messageData = payload.messages ? payload.messages[0] : payload;
+    console.log("messageData:::::::::::::", messageData)
 
     // Interactive Buttons (Vercel/Cloud API style)
     if (messageData?.type === 'interactive') {
@@ -46,6 +47,20 @@ async function receiveWebhook(req, res) {
         messageBody = interactive.button_reply.id || interactive.button_reply.title;
       } else if (interactive.type === 'list_reply') {
         messageBody = interactive.list_reply.id || interactive.list_reply.title;
+      }
+    }
+    // Audio/Voice messages (Speech-to-Text)
+    else if (messageData?.type === 'audio' || messageData?.type === 'voice') {
+      const audioUrl = messageData.audio?.link || messageData.voice?.link || messageData.link;
+      if (audioUrl) {
+        console.log(`🎙️ VOICE MESSAGE received from ${phone}. Transcribing...`);
+        const { transcribeAudio } = require('../services/audioService');
+        messageBody = await transcribeAudio(audioUrl);
+        if (!messageBody) {
+          console.error('❌ Transcription failed or returned empty.');
+          return res.status(200).send('Voice processing failed');
+        }
+        console.log(`✅ TRANSCRIBED TEXT: "${messageBody}"`);
       }
     }
     // Text extraction (11za common fallbacks)
