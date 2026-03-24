@@ -36,7 +36,7 @@ async function _doTranscribe(url, filePath) {
       url: url,
       responseType: 'stream',
       headers: {
-        'Authorization': `Bearer ${process.env.ELEVENZA_AUTH_TOKEN}`, // 11za normally expects raw token
+        // 'Authorization': `Bearer ${process.env.ELEVENZA_AUTH_TOKEN}`,
         'User-Agent': 'Mozilla/5.0' // Some CDNs block default axios agent
       }
     });
