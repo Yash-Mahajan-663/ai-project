@@ -50,9 +50,8 @@ async function receiveWebhook(req, res) {
       }
     }
     // Audio/Voice messages (Speech-to-Text) - Handling 11za specific payload structure
-    else if (
-      messageData.content?.contentType === 'media'
-    ) {
+    else if (messageData.content?.contentType === 'media') {
+      console.log(":::::::::::::::::::::voice message::::::::::::::::::")
       const audioUrl = messageData.content?.media?.url
       const mediaType = messageData.content?.media?.type;
 
@@ -67,7 +66,7 @@ async function receiveWebhook(req, res) {
         console.log(`✅ TRANSCRIBED TEXT: "${messageBody}"`);
       }
     }
-    
+
     // Text extraction fallback (if not processed by interactive or voice)
     if (!messageBody) {
       messageBody =
@@ -75,7 +74,7 @@ async function receiveWebhook(req, res) {
         messageData.text ||
         payload.UserResponse ||
         payload.message ||
-        payload.content?.body || 
+        payload.content?.body ||
         payload.content?.text ||
         '';
 
