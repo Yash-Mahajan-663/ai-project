@@ -1,9 +1,9 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
-const connectDB = require('./config/db');
-const { receiveWebhook } = require('./controllers/webhookController');
-const { initScheduler } = require('./cron/scheduler');
+const connectDB = require('../config/db');
+const { receiveWebhook } = require('../controllers/webhookController');
+const { initScheduler } = require('../cron/scheduler');
 
 const app = express();
 
@@ -25,10 +25,8 @@ connectDB();
 app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp: new Date() }));
 
 // Admin API Routes
-const adminController = require('./controllers/adminController');
+const adminController = require('../controllers/adminController');
 app.get('/api/admin/stats', adminController.getDashboardStats);
-app.get('/api/admin/bookings', adminController.getAllBookings);
-
 app.get('/api/admin/bookings', adminController.getAllBookings);
 
 // Main webhook route for 11za WhatsApp API
@@ -47,4 +45,3 @@ if (process.env.NODE_ENV !== 'production' && require.main === module) {
     console.log(`🚀 Server running locally on port ${PORT}`);
   });
 }
-
