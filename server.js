@@ -30,7 +30,7 @@ app.get('/api/admin/stats', adminController.getDashboardStats);
 app.get('/api/admin/bookings', adminController.getAllBookings);
 
 // Serve Admin Panel Static Files
-const adminDistPath = path.join(__dirname, 'admin-panel', 'dist');
+const adminDistPath = path.join(__dirname, 'public', 'admin');
 app.use('/admin', express.static(adminDistPath));
 
 // Handle SPA routing for Admin Panel
