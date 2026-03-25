@@ -369,7 +369,7 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
 
   // Schedule reminders
   scheduleAppointmentReminders(bookingId, phone, date, time, service);
-  scheduleFeedbackRequest(phone, date, time);
+  scheduleFeedbackRequest(phone, date, time, service, bookingId);
 
   // Send booking confirmation template with human-readable date
   return sendBookingConfirmTemplate(phone, senderName, service, displayDate, time);
