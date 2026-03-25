@@ -79,7 +79,7 @@ function initScheduler() {
       const pendingReminders = await Reminder.find({
         sent: false,
         schedule_time: { $lte: new Date() }
-      });
+      }).populate('booking_id');
 
       if (pendingReminders && pendingReminders.length > 0) {
         for (let task of pendingReminders) {
@@ -87,7 +87,8 @@ function initScheduler() {
           if (task.message.includes('experience')) {
             await sendMessage(task.phone, task.message);
           } else {
-            await sendReminderTemplate(task.phone, 'Customer', task.message);
+            const customerName = task.booking_id?.name || 'Customer';
+            await sendReminderTemplate(task.phone, customerName, task.message);
           }
           task.sent = true;
           await task.save();

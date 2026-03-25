@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const WaitlistSchema = new mongoose.Schema({
   phone: { type: String, required: true },
+  name: { type: String, default: 'Anonymous' },
   date: { type: String, required: true },
   time: { type: String, required: true },
   notified: { type: Boolean, default: false },

@@ -95,7 +95,10 @@ async function handleIncomingMessage(phone, message, senderName) {
   let session = await Session.findOne({ phone }).populate('draft_booking_id');
 
   if (!session) {
-    session = new Session({ phone, stage: 'IDLE' });
+    session = new Session({ phone, stage: 'IDLE', name: senderName });
+    await session.save();
+  } else if (senderName && senderName !== 'Anonymous' && session.name !== senderName) {
+    session.name = senderName;
     await session.save();
   }
 
@@ -117,7 +120,7 @@ async function handleIncomingMessage(phone, message, senderName) {
 
   // Breakout intents: If user sends a greeting, wants services menu, or wants to cancel in the middle of a flow
   if (stage !== 'IDLE' && stage !== 'WAITING_FEEDBACK') {
-    if (ai.intent === 'GREETING' || ai.intent === 'CANCEL' || ai.intent === 'SERVICES') {
+    if (ai.intent === 'GREETING' || ai.intent === 'CANCEL' || ai.intent === 'SERVICES' || ai.intent === 'MY_BOOKINGS' || ai.intent === 'AVAILABILITY') {
       console.log(`🚀 Flow broken by user intent: ${ai.intent}`);
       return routeByIntent(ai, session, phone, senderName, lowerMsg);
     }
@@ -232,6 +235,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
   // ISSUE FIX: Re-use existing draft booking instead of creating a new one every time
   if (session.draft_booking_id && session.draft_booking_id.status === 'pending') {
     draftBooking = session.draft_booking_id;
+    draftBooking.name = senderName || session.name || draftBooking.name;
     draftBooking.service = service || draftBooking.service;
     draftBooking.price = price || draftBooking.price;
     draftBooking.date = date || draftBooking.date;
@@ -241,6 +245,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
     // Create new draft booking in MongoDB
     draftBooking = new Booking({
       phone,
+      name: senderName || session.name || 'Anonymous',
       status: 'pending',
       service: service || null,
       price: price || null,
@@ -531,7 +536,8 @@ async function handleCheckMyBookings(phone) {
     return sendMessage(phone, `Aapki is *${phone}* par koi aane wali active booking nahi hai. ❌`);
   }
 
-  let text = `Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
+  const customerName = activeBookings[0]?.name || 'Customer';
+  let text = `Hi *${customerName}*! Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
   activeBookings.forEach((b, idx) => {
     text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time} *[${b.status.toUpperCase()}]*\n`;
   });
@@ -547,7 +553,7 @@ async function handleFeedbackResponse(session, phone, message) {
   const match = message.match(/[1-5]/);
   if (match) rating = parseInt(match[0]);
 
-  const feedback = new Feedback({ phone, rating, feedback: message });
+  const feedback = new Feedback({ phone, rating, feedback: message, name: session.name || 'Anonymous' });
   await feedback.save();
 
   await updateSession(phone, 'IDLE');
@@ -581,7 +587,9 @@ async function checkSlotAvailability(date, time) {
 }
 
 async function processWaitlist(phone, date, time) {
-  await new Waitlist({ phone, date, time }).save();
+  // Try to find the name from Session if possible
+  const session = await Session.findOne({ phone });
+  await new Waitlist({ phone, date, time, name: session?.name || 'Anonymous' }).save();
 }
 
 async function notifyWaitlistForSlot(date, time) {
