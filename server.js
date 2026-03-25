@@ -24,6 +24,9 @@ connectDB();
 // Health check for monitoring
 app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp: new Date() }));
 
+// Root redirect to Admin Panel
+app.get('/', (req, res) => res.redirect('/admin'));
+
 // Admin API Routes
 const adminController = require('./controllers/adminController');
 app.get('/api/admin/stats', adminController.getDashboardStats);
