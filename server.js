@@ -29,14 +29,7 @@ const adminController = require('./controllers/adminController');
 app.get('/api/admin/stats', adminController.getDashboardStats);
 app.get('/api/admin/bookings', adminController.getAllBookings);
 
-// Serve Admin Panel Static Files
-const adminDistPath = path.join(__dirname, 'public', 'admin');
-app.use('/admin', express.static(adminDistPath));
-
-// Handle SPA routing for Admin Panel
-app.get('/admin/*', (req, res) => {
-  res.sendFile(path.join(adminDistPath, 'index.html'));
-});
+app.get('/api/admin/bookings', adminController.getAllBookings);
 
 // Main webhook route for 11za WhatsApp API
 app.post('/webhook', receiveWebhook);
