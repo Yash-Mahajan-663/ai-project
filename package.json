@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node api/index.js",
-    "dev": "node --watch api/index.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "build": "npm install --prefix admin-panel && npm run build --prefix admin-panel",
     "test:bot": "node test-bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
