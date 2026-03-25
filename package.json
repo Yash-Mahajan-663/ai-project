@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "build": "node --check server.js services/*.js controllers/*.js",
+    "build": "npm install --prefix admin-panel && npm run build --prefix admin-panel",
     "test:bot": "node test-bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

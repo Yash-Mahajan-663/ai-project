@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const connectDB = require('./config/db');
 const { receiveWebhook } = require('./controllers/webhookController');
@@ -27,6 +28,15 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp:
 const adminController = require('./controllers/adminController');
 app.get('/api/admin/stats', adminController.getDashboardStats);
 app.get('/api/admin/bookings', adminController.getAllBookings);
+
+// Serve Admin Panel Static Files
+const adminDistPath = path.join(__dirname, 'admin-panel', 'dist');
+app.use('/admin', express.static(adminDistPath));
+
+// Handle SPA routing for Admin Panel
+app.get('/admin/*', (req, res) => {
+  res.sendFile(path.join(adminDistPath, 'index.html'));
+});
 
 // Main webhook route for 11za WhatsApp API
 app.post('/webhook', receiveWebhook);
