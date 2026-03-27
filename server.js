@@ -3,6 +3,7 @@ const express = require('express');
 const connectDB = require('./config/db');
 const { receiveWebhook } = require('./controllers/webhookController');
 const { initScheduler } = require('./cron/scheduler');
+const adminController = require('./controllers/adminController');
 
 const app = express();
 
@@ -14,6 +15,13 @@ connectDB();
 
 // Health check for monitoring
 app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp: new Date() }));
+
+// Admin API Routes
+app.get('/api/admin/stats', adminController.getStats);
+app.get('/api/admin/bookings', adminController.getBookings);
+app.get('/api/admin/clients', adminController.getClients);
+app.get('/api/admin/revenue', adminController.getRevenueData);
+app.get('/api/admin/inquiries', adminController.getInquiries);
 
 // Main webhook route for 11za WhatsApp API
 app.post('/webhook', receiveWebhook);

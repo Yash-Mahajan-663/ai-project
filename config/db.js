@@ -31,16 +31,24 @@ const connectDB = async () => {
     serverSelectionTimeoutMS: 8000,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 8000,
-    // bufferCommands: true (default) — allow queuing DB calls made before connection is ready
+    heartbeatFrequencyMS: 10000,    // ping every 10s to keep connection alive
+    maxIdleTimeMS: 60000,           // close idle connections after 60s (prevents buffering hang)
   })
     .then((db) => {
       console.log('✅ MongoDB Connected! DB Name:', db.connection.name);
-      connectionPromise = null; // Reset for future reconnects
+      connectionPromise = null;
+
+      // Reset cache if connection drops so next request reconnects cleanly
+      mongoose.connection.on('disconnected', () => {
+        console.warn('⚠️  MongoDB disconnected — will reconnect on next request');
+        connectionPromise = null;
+      });
+
       return db.connection;
     })
     .catch((err) => {
       console.error('❌ MongoDB Connection FAILED:', err.message);
-      connectionPromise = null; // Allow retry on next request
+      connectionPromise = null;
       return null;
     });
 

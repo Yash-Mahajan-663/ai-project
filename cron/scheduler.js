@@ -100,15 +100,37 @@ function initScheduler() {
     }
   });
 
-  // Point 2: Abandoned Booking Reminder (Hourly)
+  // Point 2 & 3: Abandoned Booking Reminder (Daily check max 3 times, then delete)
   cron.schedule('0 * * * *', async () => {
     try {
       const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
-      // Find bookings stuck in 'pending' for over 30 mins
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // --- Point 3: Delete bookings that have received 3 reminders and no response for 24 hours ---
+      const toDelete = await Booking.find({
+        status: 'pending',
+        abandoned_reminder_count: { $gte: 3 },
+        last_abandoned_reminder: { $lte: twentyFourHoursAgo }
+      });
+
+      for (let db of toDelete) {
+        // Find session in case it's still stuck on this booking and clear it
+        const Session = require('../models/Session');
+        await Session.updateMany({ draft_booking_id: db._id }, { stage: 'IDLE', draft_booking_id: null });
+        await Booking.deleteOne({ _id: db._id });
+        console.log(`🗑️ Deleted abandoned booking for ${db.phone} after 3 reminders.`);
+      }
+
+      // --- Point 2: Send reminder if stuck pending for 30m, max 3 times, 1 per day ---
       const abandonedBookings = await Booking.find({
         status: 'pending',
         updated_at: { $lte: thirtyMinsAgo },
-        abandoned_reminder_sent: { $ne: true }
+        abandoned_reminder_count: { $lt: 3 },
+        $or: [
+          { last_abandoned_reminder: null },
+          { last_abandoned_reminder: { $lte: twentyFourHoursAgo } },
+          { abandoned_reminder_sent: false }
+        ]
       });
 
       for (let b of abandonedBookings) {
@@ -118,7 +140,10 @@ function initScheduler() {
            await sendMessage(b.phone, `Hi ${b.name}! Aapne bot se chat shuru ki thi par booking process beech mein reh gaya. Kya aap usko poora karna chahenge? "Book" likhkar shuru karein.`);
         }
         b.abandoned_reminder_sent = true;
+        b.abandoned_reminder_count = (b.abandoned_reminder_count || 0) + 1;
+        b.last_abandoned_reminder = new Date();
         await b.save();
+        console.log(`🛎️ Sent abandoned reminder #${b.abandoned_reminder_count} to ${b.phone}`);
       }
     } catch (e) {
       console.error('Error processing abandoned bookings:', e.message);

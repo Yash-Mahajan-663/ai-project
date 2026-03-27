@@ -9,6 +9,8 @@ const BookingSchema = new mongoose.Schema({
   date: { type: String, default: null },
   time: { type: String, default: null },
   abandoned_reminder_sent: { type: Boolean, default: false },
+  abandoned_reminder_count: { type: Number, default: 0 },
+  last_abandoned_reminder: { type: Date, default: null },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
