@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const Reminder = require('../models/Reminder');
+const Booking = require('../models/Booking');
 const { sendMessage, sendReminderTemplate } = require('../services/whatsappService');
 
 function parseToDate(dateStr, timeStr) {
@@ -98,6 +99,32 @@ function initScheduler() {
       console.error('Error processing reminders:', e.message);
     }
   });
+
+  // Point 2: Abandoned Booking Reminder (Hourly)
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+      // Find bookings stuck in 'pending' for over 30 mins
+      const abandonedBookings = await Booking.find({
+        status: 'pending',
+        updated_at: { $lte: thirtyMinsAgo },
+        abandoned_reminder_sent: { $ne: true }
+      });
+
+      for (let b of abandonedBookings) {
+        if (b.service) {
+           await sendMessage(b.phone, `Hi ${b.name}! Aapki *${b.service}* ki booking poori nahi ho payi thi. Kya aap abhi ise poora karna chahenge? Bas "Book appointment" likh kar bhejiye.`);
+        } else {
+           await sendMessage(b.phone, `Hi ${b.name}! Aapne bot se chat shuru ki thi par booking process beech mein reh gaya. Kya aap usko poora karna chahenge? "Book" likhkar shuru karein.`);
+        }
+        b.abandoned_reminder_sent = true;
+        await b.save();
+      }
+    } catch (e) {
+      console.error('Error processing abandoned bookings:', e.message);
+    }
+  });
+
   console.log('Scheduler initialized ✅');
 }
 

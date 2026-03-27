@@ -109,9 +109,9 @@ async function handleIncomingMessage(phone, message, senderName) {
   const contextHistory = [];
   if (session.stage !== 'IDLE') {
     const booking = session.draft_booking_id;
-    contextHistory.push({ 
-      role: 'assistant', 
-      content: `[CONTEXT] User is currently booking: ${booking?.service || 'None'}. Date: ${booking?.date || 'None'}. Time: ${booking?.time || 'None'}. Stage: ${session.stage}.` 
+    contextHistory.push({
+      role: 'assistant',
+      content: `[CONTEXT] User is currently booking: ${booking?.service || 'None'}. Date: ${booking?.date || 'None'}. Time: ${booking?.time || 'None'}. Stage: ${session.stage}.`
     });
   }
 
@@ -288,7 +288,7 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
   if (!draftBookingId) return resetAndReply(phone, "Session expire ho gaya. 'Book appointment' likhkar firse try karein.");
 
   let service = _extractServiceFromText(rawMessage) || ai.service || rawMessage.trim();
-  
+
   // Normalize service name from PRICES keys
   const { PRICES } = require('./pricingService');
   const normalized = Object.keys(PRICES).find(k => k.toLowerCase() === service.toLowerCase().trim());
@@ -325,11 +325,11 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
 }
 
 async function handleBookingDateResponse(session, phone, message, senderName) {
-  const ai = await analyzeMessage(`Booking ke liye date (aur time agar ho toh) batai: "${message}"`);
-  
+  const ai = await analyzeMessage(`Booking ke liye date (aur time agar ho toh) bataayein: "${message}"`);
+
   // Logic Fix: Try AI first, then existing draft date, then raw message
   let dateStr = ai.date || session.draft_booking_id?.date || message.trim();
-  
+
   // Validate if dateStr looks like a date, if it's still raw message that is not a date, it might cause issues later.
   // But for now, using existing draft date is much safer!
 
@@ -380,7 +380,7 @@ async function confirmBooking(phone, bookingId, service, date, time, senderName)
   if (!isAvailable) {
     await processWaitlist(phone, date, time);
     // If confirmation failed because of slot, stay in ASK_TIME stage
-    await updateSession(phone, 'BOOKING_ASK_TIME'); 
+    await updateSession(phone, 'BOOKING_ASK_TIME');
     return sendMessage(phone, `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai 😅\nAapko waitlist mein add kar diya hai. Koi aur time batao ya slot free hone par hum notify karenge!`);
   }
 
@@ -502,7 +502,7 @@ async function handleRescheduleTimeResponse(session, phone, message, senderName)
 }
 
 async function handleCancelMode(session, phone) {
-  const activeBookings = await Booking.find({ phone, status: 'booked' }).sort({ created_at: -1 });
+  const activeBookings = await Booking.find({ phone, status: { $ne: 'pending' } }).sort({ created_at: -1 });
 
   if (activeBookings.length === 0) {
     return sendMessage(phone, 'Aapka koi active booking nahi hai cancel karne ke liye. 🤔');
@@ -512,7 +512,7 @@ async function handleCancelMode(session, phone) {
   // Actually, handleCancelMode is sometimes called directly. If so, and they have multiple bookings, we need state.
   if (activeBookings.length > 1 && session.stage) {
     await updateSession(phone, 'CANCEL_SELECT_BOOKING');
-    let text = "Aapki multipe active bookings hain. Kis booking ko cancel karna hai? Reply mein *NUMBER* batayein:\n\n";
+    let text = "Aapki multiple active bookings hain. Kis booking ko cancel karna hai? Reply mein *NUMBER* batayein:\n\n";
     activeBookings.forEach((b, idx) => {
       text += `*${idx + 1}.* ${b.service} - ${formatDisplayDate(b.date)} @ ${b.time}\n`;
     });
