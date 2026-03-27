@@ -51,8 +51,8 @@ function scheduleAppointmentReminders(bookingId, phone, dateStr, timeStr, servic
 
 function scheduleFeedbackRequest(phone, dateStr, timeStr, service, bookingId = null) {
   const appointmentTime = parseToDate(dateStr, timeStr);
-  // const hourLater = new Date(appointmentTime.getTime() + 60 * 60 * 1000);
-  const hourLater = new Date(Date.now() + 60 * 1000);
+  const hourLater = new Date(appointmentTime.getTime() + 2 * 60 * 1000); // 2 minutes after the appointment
+  // const testingTime = new Date(Date.now() + 60 * 1000);
   
   // Format message to include booking details
   const message = `Aapka *${service}* experience kaisa raha? (${dateStr} @ ${timeStr}) ⭐ (1-5)`;

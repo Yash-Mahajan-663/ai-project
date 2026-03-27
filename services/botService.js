@@ -239,6 +239,7 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
     draftBooking.service = service || draftBooking.service;
     draftBooking.price = price || draftBooking.price;
     draftBooking.date = date || draftBooking.date;
+    draftBooking.time = time || draftBooking.time;
     draftBooking.updated_at = new Date();
     await draftBooking.save();
   } else {
@@ -249,10 +250,11 @@ async function startBookingWithAI(session, phone, service, date, time, aiReply, 
       status: 'pending',
       service: service || null,
       price: price || null,
-      date: date || null
+      date: date || null,
+      time: time || null
     });
     await draftBooking.save();
-    
+
     // Update session with new draft_booking_id
     session.draft_booking_id = draftBooking._id;
     await session.save();
@@ -297,12 +299,26 @@ async function handleServiceSelected(session, phone, rawMessage, ai) {
   const price = getPriceForService(service);
 
   // Update booking
-  await Booking.updateOne({ _id: draftBookingId }, { service, price });
-
-  await updateSession(phone, 'BOOKING_ASK_DATE');
+  const actualBookingId = draftBookingId._id || draftBookingId;
+  await Booking.updateOne({ _id: actualBookingId }, { service, price });
 
   let text = `*${service}* select kiya ✅`;
   if (price > 0) text += ` (Price: ₹${price})`;
+
+  // If date and time were already provided in the initial prompt
+  if (draftBookingId.date && draftBookingId.time) {
+    return confirmBooking(phone, actualBookingId, service, draftBookingId.date, draftBookingId.time, session.name || 'Customer');
+  }
+
+  // If only date was provided
+  if (draftBookingId.date) {
+    await updateSession(phone, 'BOOKING_ASK_TIME');
+    text += `\n📅 *${formatDisplayDate(draftBookingId.date)}* ke liye kis time par aana chahenge? (e.g., 10 AM, 3 PM)`;
+    return sendMessage(phone, text);
+  }
+
+  // If no date was provided
+  await updateSession(phone, 'BOOKING_ASK_DATE');
   text += `\nDate kya hogi? (e.g., Aaj, Kal, 25 March)`;
 
   return sendMessage(phone, text);
