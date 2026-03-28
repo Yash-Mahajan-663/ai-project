@@ -106,7 +106,7 @@ async function sendTemplate(phone, customerName, templateName, options = {}) {
 //    Template body expects no dynamic variables
 // ─────────────────────────────────────────────
 async function sendServiceMenuTemplate(phone, customerName, service, type = "chatbot") {
-  return sendTemplate(phone, customerName, 'saloon_services_3', {
+  return sendTemplate(phone, customerName, process.env.TEMPLATE_SERVICE_MENU, {
     data: [customerName, service || "Support", type],
     tags: 'appointment,services'
   });
@@ -116,7 +116,7 @@ async function sendServiceMenuTemplate(phone, customerName, service, type = "cha
 // 4. Shortcut: Booking Confirmation Template
 // ─────────────────────────────────────────────
 async function sendBookingConfirmTemplate(phone, customerName, service, date, time) {
-  return sendTemplate(phone, customerName, 'saloon_booking_confirm', {
+  return sendTemplate(phone, customerName, process.env.TEMPLATE_BOOKING_CONFIRM, {
     // Variable layout: {{1}} service, {{2}} date, {{3}} time
     data: [service, date, time],
     tags: 'appointment,booking'
@@ -127,7 +127,7 @@ async function sendBookingConfirmTemplate(phone, customerName, service, date, ti
 // 5. Shortcut: Reschedule Confirmation Template
 // ─────────────────────────────────────────────
 async function sendRescheduleConfirmTemplate(phone, customerName, service, date, time) {
-  return sendTemplate(phone, customerName, 'saloon_reschedule_confirm', {
+  return sendTemplate(phone, customerName, process.env.TEMPLATE_RESCHEDULE_CONFIRM, {
     // Variable layout: {{1}} service, {{2}} date, {{3}} time
     data: [service, date, time],
     tags: 'appointment,reschedule'
@@ -139,7 +139,7 @@ async function sendRescheduleConfirmTemplate(phone, customerName, service, date,
 //    Template body e.g.: "Aapka {{1}} appointment {{2}} mein hai ⏰"
 // ─────────────────────────────────────────────
 async function sendReminderTemplate(phone, customerName, appointmentLabel) {
-  return sendTemplate(phone, customerName, 'saloon_reminder', {
+  return sendTemplate(phone, customerName, process.env.TEMPLATE_REMINDER, {
     data: [appointmentLabel],
     tags: 'appointment,reminder'
   });

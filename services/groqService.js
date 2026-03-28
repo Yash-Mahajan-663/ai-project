@@ -1,7 +1,7 @@
 const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL = 'llama-3.3-70b-versatile'; // More reliable JSON output than 8b-instant
+const MODEL = process.env.CHAT_MODEL; // More reliable JSON output than 8b-instant
 
 // ─────────────────────────────────────────────────────
 // System Prompt — Appointment AI ka personality & rules

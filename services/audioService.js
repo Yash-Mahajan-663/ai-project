@@ -70,7 +70,7 @@ async function _doTranscribe(url, filePath) {
     // 2. Transcribe using GROQ Whisper
     const transcription = await groq.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
-      model: 'whisper-large-v3', 
+      model: process.env.WHISPER_MODEL, 
       response_format: 'json'
     });
 
