@@ -27,25 +27,25 @@ export function StatsCard({ title, value, trend, trendType, icon: Icon }: StatsC
         <div className="h-12 w-24 opacity-40 group-hover:opacity-100 transition-opacity duration-500">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke={trendType === 'up' ? "#3B82F6" : "#E11D48"} 
-                fillOpacity={0.1} 
-                fill={trendType === 'up' ? "#3B82F6" : "#E11D48"} 
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={trendType === 'up' ? "#3B82F6" : "#E11D48"}
+                fillOpacity={0.1}
+                fill={trendType === 'up' ? "#3B82F6" : "#E11D48"}
                 strokeWidth={2}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
-      
+
       <div className="space-y-1">
-        <h3 className="text-slate-400 text-[10px] font-light uppercase tracking-[0.2em]">{title}</h3>
+        <h3 className="text-slate-500 text-[10px] uppercase tracking-[0.2em]">{title}</h3>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-light text-slate-900 font-outfit tracking-tight">{value}</span>
+          <span className="text-3xl text-slate-900 font-outfit tracking-tight">{value}</span>
           <span className={cn(
-            "px-2 py-1 rounded-lg text-[9px] flex items-center gap-1 font-medium uppercase tracking-tighter",
+            "px-2 py-1 rounded-lg text-[9px] flex items-center gap-1 font-medium uppercase",
             trendType === 'up' ? "bg-green-100/50 text-green-600 border border-green-200/50" : "bg-red-100/50 text-red-600 border border-red-200/50"
           )}>
             {trendType === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}

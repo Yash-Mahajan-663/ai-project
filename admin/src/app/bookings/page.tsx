@@ -33,7 +33,7 @@ export default function BookingsPage() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
@@ -41,13 +41,13 @@ export default function BookingsPage() {
     >
       <div className="flex flex-col gap-2 relative">
         <div className="flex items-center gap-3">
-           <div className="p-2 bg-blue-50 rounded-xl">
-              <Calendar className="w-6 h-6 text-blue-600" />
-           </div>
-           <h1 className="text-5xl font-light tracking-tighter font-outfit text-slate-900 leading-none">Schedule <span className="text-blue-600 font-medium">Manager</span></h1>
+          <div className="p-2 bg-blue-50 rounded-xl">
+            <Calendar className="w-6 h-6 text-blue-600" />
+          </div>
+          <h1 className="text-5xl font-outfit text-slate-900 leading-none">Schedule <span className="text-blue-600 font-medium">Manager</span></h1>
         </div>
-        <p className="text-[11px] text-slate-400 font-medium uppercase tracking-[0.3em] pl-1">Professional booking oversight & control</p>
-        <div className="absolute -top-10 right-0 opacity-[0.03] text-8xl font-light select-none pointer-events-none uppercase font-outfit">CALENDAR</div>
+        <p className="text-[11px] text-slate-500 font-medium uppercase tracking-[0.3em] pl-1">Professional booking oversight & control</p>
+        <div className="absolute -top-10 right-0 opacity-[0.03] text-8xl select-none pointer-events-none uppercase font-outfit">CALENDAR</div>
       </div>
 
       <BookingCalendar bookings={bookings} />

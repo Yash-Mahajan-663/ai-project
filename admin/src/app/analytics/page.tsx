@@ -57,18 +57,18 @@ export default function AnalyticsPage() {
   }
 
   const insights = [
-    { 
-      label: 'Avg. Transaction', 
-      value: stats.avgTransaction > 0 ? `₹${stats.avgTransaction.toLocaleString('en-IN')}` : '₹—', 
-      trend: '+5.2%', 
-      up: true 
+    {
+      label: 'Avg. Transaction',
+      value: stats.avgTransaction > 0 ? `₹${stats.avgTransaction.toLocaleString('en-IN')}` : '₹—',
+      trend: '+5.2%',
+      up: true
     },
     { label: 'Cancellation Rate', value: '2.4%', trend: '-1.1%', up: false },
     { label: 'Repeat Client Rate', value: '68%', trend: '+12%', up: true },
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
@@ -76,45 +76,45 @@ export default function AnalyticsPage() {
     >
       <div className="flex flex-col gap-4 relative">
         <div className="flex items-center gap-4">
-           <div className="p-3 bg-blue-50/50 rounded-2xl">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-           </div>
-           <h1 className="text-[4.5rem] font-extralight tracking-tighter font-outfit text-slate-800 leading-none">Financial <span className="text-blue-600 font-light">Intelligence</span></h1>
+          <div className="p-3 bg-blue-50/50 rounded-2xl">
+            <TrendingUp className="w-8 h-8 text-blue-600" />
+          </div>
+          <h1 className="text-[4.5rem] font-extralight font-outfit text-slate-800 leading-none">Financial <span className="text-blue-600">Intelligence</span></h1>
         </div>
-        <p className="text-base text-slate-400 font-light uppercase tracking-[0.4em] pl-2">Advanced revenue stream &amp; growth tracking</p>
+        <p className="text-base text-slate-500 uppercase tracking-[0.4em] pl-2">Advanced revenue stream &amp; growth tracking</p>
         <div className="absolute -top-10 right-0 opacity-[0.03] text-9xl font-extralight select-none pointer-events-none uppercase font-outfit">ANALYTICS</div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div className="lg:col-span-2">
-            <RevenueChart data={revenue} />
-         </div>
-         <div className="glass-panel rounded-[3rem] p-10 flex flex-col gap-10 bg-white/20 border-white/60">
-            <div className="flex flex-col gap-2">
-               <h3 className="text-2xl font-light text-slate-900 uppercase tracking-widest flex items-center gap-3 font-outfit">
-                  <Gem className="w-5 h-5 text-blue-600" />
-                  Premium Insights
-               </h3>
-               <p className="p-1 text-sm font-light text-slate-400 uppercase tracking-widest">Performance metrics</p>
-            </div>
-            <div className="space-y-5">
-               {insights.map((item) => (
-                 <div key={item.label} className="p-8 glass-card rounded-[2rem] flex items-center justify-between group bg-white/40">
-                    <div className="flex flex-col gap-2">
-                       <span className="text-xs font-light text-slate-400 uppercase tracking-widest leading-none">{item.label}</span>
-                       <span className="text-4xl font-light text-slate-800 tracking-tight">{item.value}</span>
-                    </div>
-                    <div className={cn(
-                      "flex items-center gap-1.5 text-sm font-light uppercase px-3 py-1.5 rounded-xl transition-all group-hover:scale-110",
-                      item.up ? "text-green-600 bg-green-50 border border-green-100" : "text-red-500 bg-red-50 border border-red-100"
-                    )}>
-                       {item.up ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                       {item.trend}
-                    </div>
-                 </div>
-               ))}
-            </div>
-         </div>
+        <div className="lg:col-span-2">
+          <RevenueChart data={revenue} />
+        </div>
+        <div className="glass-panel rounded-[3rem] p-10 flex flex-col gap-10 bg-white/20 border-white/60">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-2xl text-slate-900 uppercase tracking-widest flex items-center gap-3 font-outfit">
+              <Gem className="w-5 h-5 text-blue-600" />
+              Premium Insights
+            </h3>
+            <p className="p-1 text-sm text-slate-500 uppercase tracking-widest">Performance metrics</p>
+          </div>
+          <div className="space-y-5">
+            {insights.map((item) => (
+              <div key={item.label} className="p-8 glass-card rounded-[2rem] flex items-center justify-between group bg-white/40">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs text-slate-500 uppercase tracking-widest leading-none">{item.label}</span>
+                  <span className="text-4xl text-slate-800 tracking-tight">{item.value}</span>
+                </div>
+                <div className={cn(
+                  "flex items-center gap-1.5 text-sm uppercase px-3 py-1.5 rounded-xl transition-all group-hover:scale-110",
+                  item.up ? "text-green-600 bg-green-50 border border-green-100" : "text-red-500 bg-red-50 border border-red-100"
+                )}>
+                  {item.up ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  {item.trend}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </motion.div>
   );

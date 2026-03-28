@@ -1,10 +1,11 @@
 "use client";
 
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Users,
+  CalendarDays,
+  TrendingUp,
   MessageSquare,
   Zap
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import { motion } from 'framer-motion';
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/' },
   { icon: Users, label: 'Client Vault', href: '/clients' },
+  { icon: CalendarDays, label: 'Booking Calendar', href: '/bookings' },
   { icon: TrendingUp, label: 'Analytics', href: '/analytics' },
   { icon: MessageSquare, label: 'Inquiries', href: '/inquiries' },
 ];
@@ -30,8 +32,8 @@ export function Sidebar() {
           <Zap className="text-white w-6 h-6 fill-white" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-light text-slate-900 font-outfit leading-none mb-0.5 tracking-tight">Saloon<span className="text-blue-600 font-light">AI</span></span>
-          <span className="text-[10px] font-light text-slate-400 uppercase tracking-[0.2em]">Dashboard</span>
+          <span className="text-xl text-slate-900 font-outfit leading-none mb-0.5 tracking-tight">Saloon<span className="text-blue-600">AI</span></span>
+          <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Dashboard</span>
         </div>
       </div>
 
@@ -44,19 +46,19 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 relative group",
-                isActive 
-                  ? "bg-white shadow-lg shadow-black/5 text-blue-600 scale-[1.02]" 
+                isActive
+                  ? "bg-white shadow-lg shadow-black/5 text-blue-600 scale-[1.02]"
                   : "text-slate-500 hover:bg-white/50 hover:text-slate-900 hover:scale-[1.02]",
               )}
             >
               {isActive && (
-                <motion.div 
+                <motion.div
                   layoutId="active-pill"
                   className="absolute left-0 w-1.5 h-6 bg-blue-600 rounded-r-full"
                 />
               )}
-              <item.icon className={cn("w-5 h-5 transition-colors", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-900")} />
-              <span className="text-sm font-light tracking-tight">{item.label}</span>
+              <item.icon className={cn("w-5 h-5 transition-colors", isActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-900")} />
+              <span className="text-sm tracking-tight">{item.label}</span>
             </Link>
           );
         })}
