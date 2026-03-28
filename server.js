@@ -4,8 +4,16 @@ const connectDB = require('./config/db');
 const { receiveWebhook } = require('./controllers/webhookController');
 const { initScheduler } = require('./cron/scheduler');
 const adminController = require('./controllers/adminController');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+
+// ⚠️ Security: Rate Limiting to prevent spam/DDoS on webhook
+const limiter = rateLimit({
+  windowMs: 2 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later."
+});
 
 // Middleware
 app.use(express.json());

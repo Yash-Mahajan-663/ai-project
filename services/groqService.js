@@ -8,8 +8,20 @@ const MODEL = process.env.CHAT_MODEL; // More reliable JSON output than 8b-insta
 // ─────────────────────────────────────────────────────
 function getSystemPrompt() {
   const today = new Date().toISOString().split('T')[0];
+
+  const SALON_KNOWLEDGE = `
+SALON INFORMATION (SOURCE OF TRUTH):
+- Name: Saloon AI (Shivam Society Branch)
+- Address: Beside Oberon, New City Light Rd, above Yes Bank, Shivam Society, Althan, Surat, Gujarat 395007.
+- Working Hours: 10:00 AM to 10:00 PM (Monday to Sunday).
+- Parking: FREE parking available for both two-wheelers and four-wheelers.
+- Services: Haircut (₹200), Beard (₹100), Facial (₹500), and various combos.
+`;
+
   return `
 You are a JSON extraction engine for a WhatsApp appointment booking bot. Your ONLY job is to extract structured data from user messages and return a strict JSON object.
+
+${SALON_KNOWLEDGE}
 
 Today's date: ${today}
 

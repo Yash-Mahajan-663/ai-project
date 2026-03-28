@@ -222,6 +222,21 @@ async function routeByIntent(ai, session, phone, senderName, lowerMsg) {
 // Booking: AI ne jo extract kiya usse use karo
 // ─────────────────────────────────────────────
 async function startBookingWithAI(session, phone, service, date, time, aiReply, senderName) {
+  // ⚠️ Security: Limit pending bookings per user (Max 3)
+  const pendingCount = await Booking.countDocuments({ phone, status: 'pending' });
+  if (pendingCount >= 3) {
+    return sendMessage(phone, "Aapki pehle se kuch adhuri (pending) bookings hain. Kripya pehle unhe poora karein ya cancel karein. 🙏");
+  }
+
+  const pendingBookings = await Booking.find({ phone, status: 'pending' });
+  if (pendingBookings.length >= 3) {
+    let listText = "";
+    pendingBookings.forEach((b, i) => {
+      listText += `*${i + 1}.* ${b.service || 'Unknown Service'} - ${b.date ? formatDisplayDate(b.date) : 'Date pending'}\n`;
+    });
+    return sendMessage(phone, `⚠️ Aapki teen (3) pending bookings pehle se hain:\n\n${listText}\nKripya pehle inme se kisi ko poora karein ya cancel karein. 🙏`);
+  }
+
   // If AI detected date/time in the past, reject it so the bot asks again
   if (date && checkPastDateTime(date, time)) {
     sendMessage(phone, `⚠️ Aapne jo date ya time chuna tha (${formatDisplayDate(date)} ${time || ''}), woh beet chuka hai. Hum fresh date/time collect karenge...`);
@@ -374,14 +389,24 @@ async function handleBookingTimeResponse(session, phone, message, senderName) {
 
 async function confirmBooking(phone, bookingId, service, date, time, senderName) {
   const isAvailable = await checkSlotAvailability(date, time);
-
-  const displayDate = formatDisplayDate(date); // e.g. "22nd March 2026"
+  const displayDate = formatDisplayDate(date); 
 
   if (!isAvailable) {
+    // 🚀 Hybrid: Smart Suggestions + Waitlist
+    const recommendations = await getRecommendedSlots(date, time);
+    
+    let text = `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai. 😅\n\n`;
+    
+    if (recommendations.length > 0) {
+      text += `Humare paas yeh times free hain:\n- ${recommendations.join('\n- ')}\n\n`;
+      text += `Kya main inme se koi book karu? Ya fir aapko ${time} baje ke liye *Waitlist* mein add kar du?`;
+    } else {
+      text += `Aapko waitlist mein add kar diya hai. Slot free hote hi hum notify karenge!`;
+    }
+
     await processWaitlist(phone, date, time);
-    // If confirmation failed because of slot, stay in ASK_TIME stage
     await updateSession(phone, 'BOOKING_ASK_TIME');
-    return sendMessage(phone, `⚠️ ${displayDate} ko ${time} baje ka slot already booked hai 😅\nAapko waitlist mein add kar diya hai. Koi aur time batao ya slot free hone par hum notify karenge!`);
+    return sendMessage(phone, text);
   }
 
   // Update booking status in MongoDB. Also save date in case it was a bulk-response skip
@@ -553,7 +578,7 @@ async function handleCheckMyBookings(phone) {
   }
 
   const customerName = activeBookings[0]?.name || 'Customer';
-  let text = `Hi *${customerName}*! Aapki is *${phone}* se total *${activeBookings.length}* booking(s) mili hain:\n\n`;
+  let text = `Hi *${customerName}*! Aapki is *${phone}* से total *${activeBookings.length}* booking(s) mili hain:\n\n`;
   activeBookings.forEach((b, idx) => {
     text += `*${idx + 1}.* ${b.service} ─ ${formatDisplayDate(b.date)} @ ${b.time} *[${b.status.toUpperCase()}]*\n`;
   });
@@ -600,6 +625,30 @@ async function checkSlotAvailability(date, time) {
   });
 
   return count === 0;
+}
+
+// ─────────────────────────────────────────────
+// Smart Suggestions Helper
+// ─────────────────────────────────────────────
+async function getRecommendedSlots(date, requestedTime) {
+  const businessHours = [
+    '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', 
+    '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', 
+    '08:00 PM', '09:00 PM'
+  ];
+
+  const alreadyBooked = await Booking.find({ date, status: 'booked' }).select('time');
+  const bookedTimes = alreadyBooked.map(b => b.time);
+
+  // Filter out booked and past times
+  const available = businessHours.filter(t => {
+    const isBooked = bookedTimes.includes(t);
+    const isPast = checkPastDateTime(date, t);
+    return !isBooked && !isPast;
+  });
+
+  // Return 2 suggestions closest to the requested time
+  return available.slice(0, 2);
 }
 
 async function processWaitlist(phone, date, time) {
