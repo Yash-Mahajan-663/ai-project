@@ -10,11 +10,21 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// Connect to Database
+// Connect to Database (fire-and-forget for local dev; middleware below handles serverless)
 connectDB();
 
 // Health check for monitoring
 app.get('/health', (req, res) => res.status(200).json({ status: 'UP', timestamp: new Date() }));
+
+// Ensure DB is connected before handling admin/API requests (critical for Vercel serverless cold starts)
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(503).json({ success: false, message: 'Database connection failed' });
+  }
+});
 
 // Admin API Routes
 app.get('/api/admin/stats', adminController.getStats);
@@ -23,8 +33,10 @@ app.get('/api/admin/clients', adminController.getClients);
 app.get('/api/admin/revenue', adminController.getRevenueData);
 app.get('/api/admin/inquiries', adminController.getInquiries);
 
-// Main webhook route for 11za WhatsApp API
-app.post('/webhook', receiveWebhook);
+// Main webhook route for 11za WhatsApp API (also needs DB)
+app.post('/webhook', async (req, res, next) => {
+  try { await connectDB(); next(); } catch (err) { res.status(503).json({ error: 'DB unavailable' }); }
+}, receiveWebhook);
 
 // Init background scheduler
 initScheduler();
